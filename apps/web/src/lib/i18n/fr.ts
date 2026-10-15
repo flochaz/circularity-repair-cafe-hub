@@ -320,4 +320,23 @@ export const fr: Record<string, string> = {
   'Could not put this back in the queue': 'Impossible de remettre dans la file',
   'Could not save the answer': 'Impossible d’enregistrer la réponse',
   'Could not upload the photo': 'Impossible d’envoyer la photo',
+
+  // ── Sign in ────────────────────────────────────────────────────────
+  'Could not sign in': 'Connexion impossible',
+  'Sign in': 'Connexion',
+  'For repairers and admins.': 'Pour les réparateurs et les administrateurs.',
+  'Sign in to carry on where you were.': 'Connectez-vous pour reprendre où vous en étiez.',
+  Email: 'E-mail',
+  Password: 'Mot de passe',
+  'Back to home': 'Retour à l’accueil',
+
+  // ── My repairs (history) ───────────────────────────────────────────
+  'Could not load your repairs': 'Impossible de charger vos réparations',
+  Repairs: 'Réparations',
+  'You fix most': 'Vous réparez surtout',
+  'Nothing yet. The repairs you start will be listed here.':
+    'Rien pour l’instant. Les réparations que vous démarrez apparaîtront ici.',
+  'Page {page} of {total}': 'Page {page} sur {total}',
+  Newer: 'Plus récentes',
+  Older: 'Plus anciennes',
 };
