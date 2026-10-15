@@ -52,6 +52,7 @@ export async function adminRepairsRoutes(app: App): Promise<void> {
         weightKg: repairJobs.weightKg,
         status: repairJobs.status,
         satisfaction: repairJobs.satisfaction,
+        cardNumber: repairJobs.cardNumber,
         createdAt: repairJobs.createdAt,
         completedAt: repairJobs.completedAt,
         eventId: repairJobs.eventId,
@@ -120,7 +121,7 @@ export async function adminRepairsRoutes(app: App): Promise<void> {
       return;
     }
     const update: any = { updatedAt: new Date() };
-    for (const k of ['status', 'repairerId', 'outcomeNotes', 'partsUsed', 'customerName', 'customerContact', 'itemDescription', 'faultDescription', 'itemCategoryId', 'itemBrand', 'weightKg', 'isFirstVisit', 'satisfaction', 'satisfactionComment']) {
+    for (const k of ['status', 'repairerId', 'outcomeNotes', 'partsUsed', 'customerName', 'customerContact', 'itemDescription', 'faultDescription', 'itemCategoryId', 'itemBrand', 'weightKg', 'isFirstVisit', 'satisfaction', 'satisfactionComment', 'cardNumber']) {
       if ((data as any)[k] !== undefined) update[k] = (data as any)[k];
     }
     if (data.environmentalSavingKg !== undefined) {
@@ -194,6 +195,7 @@ export async function adminRepairsRoutes(app: App): Promise<void> {
         isFirstVisit: repairJobs.isFirstVisit,
         fault: repairJobs.faultDescription,
         status: repairJobs.status,
+        cardNumber: repairJobs.cardNumber,
         repairer: users.displayName,
         outcomeNotes: repairJobs.outcomeNotes,
         satisfaction: repairJobs.satisfaction,
@@ -207,7 +209,7 @@ export async function adminRepairsRoutes(app: App): Promise<void> {
       .leftJoin(skillCategories, eq(skillCategories.id, repairJobs.itemCategoryId))
       .leftJoin(users, eq(users.id, repairJobs.repairerId))
       .orderBy(desc(repairJobs.createdAt));
-    const headers = ['jobNumber', 'eventDate', 'eventName', 'customerName', 'itemDescription', 'category', 'brand', 'weightKg', 'isFirstVisit', 'fault', 'status', 'repairer', 'outcomeNotes', 'satisfaction', 'satisfactionComment', 'environmentalSavingKg', 'createdAt', 'completedAt'];
+    const headers = ['jobNumber', 'cardNumber', 'eventDate', 'eventName', 'customerName', 'itemDescription', 'category', 'brand', 'weightKg', 'isFirstVisit', 'fault', 'status', 'repairer', 'outcomeNotes', 'satisfaction', 'satisfactionComment', 'environmentalSavingKg', 'createdAt', 'completedAt'];
     const esc = (v: unknown) => {
       if (v === null || v === undefined) return '';
       const s = String(v);
