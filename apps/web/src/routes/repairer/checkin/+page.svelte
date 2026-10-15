@@ -5,6 +5,7 @@
   import { categoryIcon } from '$lib/categoryIcon';
   import CameraCapture from '$lib/components/CameraCapture.svelte';
   import { UserPlus, CheckCircle2, Plus, ArrowLeft, CalendarOff, X } from 'lucide-svelte';
+  import { t, tNow } from '$lib/i18n';
 
   interface SkillCategory { id: string; name: string; icon: string; colour: string }
 
@@ -77,7 +78,7 @@
         .map((j) => j.cardNumber as number);
       categories = cats;
     } catch (err: any) {
-      loadError = err?.message || 'Could not load the check-in form';
+      loadError = err?.message || tNow('Could not load the check-in form');
     } finally {
       loading = false;
     }
@@ -93,10 +94,10 @@
 
   async function submit() {
     error = '';
-    if (!itemDescription.trim()) return (error = 'Please describe the item');
-    if (!faultDescription.trim()) return (error = "Please describe what's wrong with it");
+    if (!itemDescription.trim()) return (error = tNow('Please describe the item'));
+    if (!faultDescription.trim()) return (error = tNow("Please describe what's wrong with it"));
     if (hasPii && !consent) {
-      return (error = 'Please confirm the customer is happy for their details to be stored');
+      return (error = tNow('Please confirm the customer is happy for their details to be stored'));
     }
     busy = true;
     try {
@@ -121,13 +122,13 @@
           fd.append('image', photoBlob, 'photo.jpg');
           await api(`/api/repairer/jobs/${res.id}/image?stage=check_in`, { method: 'POST', formData: fd });
         } catch {
-          photoWarning = 'The repair was registered, but the photo could not be uploaded.';
+          photoWarning = tNow('The repair was registered, but the photo could not be uploaded.');
         }
       }
       created = { jobNumber: res.jobNumber, cardNumber };
       if (cardNumber != null) takenCards = [...takenCards, cardNumber];
     } catch (err: any) {
-      error = err?.message || 'Could not register the repair';
+      error = err?.message || tNow('Could not register the repair');
     } finally {
       busy = false;
     }
@@ -153,44 +154,44 @@
 
 <div class="max-w-2xl mx-auto">
   <a href="/repairer" class="inline-flex items-center gap-1 text-sm text-slate-500 hover:text-slate-700">
-    <ArrowLeft size={16} /> Back to the queue
+    <ArrowLeft size={16} /> {$t('Back to the queue')}
   </a>
 
   {#if loading}
-    <div class="card p-6 text-center text-slate-500 mt-4">Loading…</div>
+    <div class="card p-6 text-center text-slate-500 mt-4">{$t('Loading…')}</div>
   {:else if loadError}
     <div class="card p-6 text-center mt-4">
-      <h1 class="text-xl font-semibold">Sorry</h1>
+      <h1 class="text-xl font-semibold">{$t('Sorry')}</h1>
       <p class="mt-2 text-slate-700">{loadError}</p>
     </div>
   {:else if !activeEvent}
     <div class="card p-8 text-center mt-4">
       <span class="h-12 w-12 mx-auto rounded-2xl bg-amber-100 text-amber-700 flex items-center justify-center"><CalendarOff size={22} /></span>
-      <h1 class="text-2xl font-bold mt-4">No active event</h1>
-      <p class="mt-2 text-slate-700">An admin needs to start (activate) today's event before you can register repairs.</p>
-      <a href="/repairer" class="btn-secondary mt-6">Back to the queue</a>
+      <h1 class="text-2xl font-bold mt-4">{$t('No active event')}</h1>
+      <p class="mt-2 text-slate-700">{$t("An admin needs to start (activate) today's event before you can register repairs.")}</p>
+      <a href="/repairer" class="btn-secondary mt-6">{$t('Back to the queue')}</a>
     </div>
   {:else if created}
     <div class="card p-8 text-center mt-4">
       <span class="h-16 w-16 mx-auto rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center"><CheckCircle2 size={32} /></span>
-      <h1 class="text-3xl font-bold mt-5">Repair registered</h1>
-      <p class="mt-2 text-slate-700">It's now in the queue for this event.</p>
-      <p class="mt-6 text-sm uppercase tracking-wide text-slate-500">Job number</p>
+      <h1 class="text-3xl font-bold mt-5">{$t('Repair registered')}</h1>
+      <p class="mt-2 text-slate-700">{$t("It's now in the queue for this event.")}</p>
+      <p class="mt-6 text-sm uppercase tracking-wide text-slate-500">{$t('Job number')}</p>
       <p class="text-5xl font-extrabold text-brand-700 mt-1 tracking-wide">{created.cardNumber ?? created.jobNumber}</p>
-      {#if created.cardNumber}<p class="text-sm text-slate-500 mt-1">Job {created.jobNumber}</p>{/if}
-      <p class="mt-5 text-slate-600">Write this number on the item's tag and let the customer know it. That's how we'll match the item back to them.</p>
+      {#if created.cardNumber}<p class="text-sm text-slate-500 mt-1">{$t('Job {number}', { number: created.jobNumber })}</p>{/if}
+      <p class="mt-5 text-slate-600">{$t("Write this number on the item's tag and let the customer know it. That's how we'll match the item back to them.")}</p>
       {#if photoWarning}<p class="mt-4 text-sm text-amber-700">{photoWarning}</p>{/if}
       <div class="mt-8 flex flex-col sm:flex-row gap-3 justify-center">
         <button type="button" class="btn-primary" on:click={registerAnother}>
-          <Plus size={18} /> Register another item
+          <Plus size={18} /> {$t('Register another item')}
         </button>
-        <a href="/repairer" class="btn-secondary">Back to the queue</a>
+        <a href="/repairer" class="btn-secondary">{$t('Back to the queue')}</a>
       </div>
     </div>
   {:else}
     <header class="mt-4">
-      <h1 class="text-2xl font-bold flex items-center gap-2"><UserPlus size={22} /> Register a repair</h1>
-      <p class="mt-1 text-slate-600">For a visitor who can't check in on their own device.</p>
+      <h1 class="text-2xl font-bold flex items-center gap-2"><UserPlus size={22} /> {$t('Register a repair')}</h1>
+      <p class="mt-1 text-slate-600">{$t("For a visitor who can't check in on their own device.")}</p>
       <p class="mt-1 text-sm text-slate-500">{activeEvent.name}{#if activeEvent.venueName} · {activeEvent.venueName}{/if}</p>
     </header>
 
@@ -198,7 +199,7 @@
       <!-- Item type -->
       {#if categories.length}
         <div>
-          <p class="label">What type of item is it? <span class="font-normal text-slate-400">(optional)</span></p>
+          <p class="label">{$t('What type of item is it?')} <span class="font-normal text-slate-400">{$t('(optional)')}</span></p>
           <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 mt-1">
             {#each categories as cat}
               <button
@@ -218,8 +219,8 @@
 
       <!-- Session number: the number on the card handed to the visitor. -->
       <div>
-        <p class="label">Session number <span class="font-normal text-slate-400">(optional)</span></p>
-        <p class="text-sm text-slate-500 mb-2">Tap the number on the card you gave the visitor. Numbers already in use are greyed out.</p>
+        <p class="label">{$t('Session number')} <span class="font-normal text-slate-400">{$t('(optional)')}</span></p>
+        <p class="text-sm text-slate-500 mb-2">{$t('Tap the number on the card you gave the visitor. Numbers already in use are greyed out.')}</p>
         <div class="grid grid-cols-10 gap-1.5">
           {#each CARD_NUMBERS as n}
             <button
@@ -233,38 +234,38 @@
       </div>
 
       <div>
-        <label class="label" for="item">Item description</label>
-        <input id="item" class="input" maxlength="200" placeholder="e.g. Bosch cordless drill, blue" bind:value={itemDescription} />
+        <label class="label" for="item">{$t('Item description')}</label>
+        <input id="item" class="input" maxlength="200" placeholder={$t('e.g. Bosch cordless drill, blue')} bind:value={itemDescription} />
       </div>
 
       <div>
-        <label class="label" for="brand">Brand <span class="font-normal text-slate-400">(optional)</span></label>
+        <label class="label" for="brand">{$t('Brand')} <span class="font-normal text-slate-400">{$t('(optional)')}</span></label>
         <input id="brand" class="input" maxlength="100" bind:value={itemBrand} />
       </div>
 
       <div>
-        <label class="label" for="weight">Weight in kg <span class="font-normal text-slate-400">(optional)</span></label>
-        <input id="weight" type="text" inputmode="decimal" class="input" placeholder="e.g. 1.5" bind:value={weightKg} />
+        <label class="label" for="weight">{$t('Weight in kg')} <span class="font-normal text-slate-400">{$t('(optional)')}</span></label>
+        <input id="weight" type="text" inputmode="decimal" class="input" placeholder={$t('e.g. 1.5')} bind:value={weightKg} />
       </div>
 
       <label class="flex items-center gap-3 cursor-pointer text-sm text-slate-700">
         <input type="checkbox" class="h-5 w-5 rounded border-slate-300 text-brand-600" bind:checked={isFirstVisit} />
-        <span>This is the customer's first visit</span>
+        <span>{$t("This is the customer's first visit")}</span>
       </label>
 
       <div>
-        <label class="label" for="fault">What's wrong with it?</label>
-        <textarea id="fault" class="input" rows="3" maxlength="500" placeholder="e.g. Won't turn on, battery seems dead" bind:value={faultDescription}></textarea>
+        <label class="label" for="fault">{$t("What's wrong with it?")}</label>
+        <textarea id="fault" class="input" rows="3" maxlength="500" placeholder={$t("e.g. Won't turn on, battery seems dead")} bind:value={faultDescription}></textarea>
       </div>
 
       <!-- Photo (optional) -->
       <div>
-        <p class="label">Photo <span class="font-normal text-slate-400">(optional)</span></p>
-        <p class="text-sm text-slate-500 mb-2">A photo helps repairers see what they'll be working on.</p>
+        <p class="label">{$t('Photo')} <span class="font-normal text-slate-400">{$t('(optional)')}</span></p>
+        <p class="text-sm text-slate-500 mb-2">{$t("A photo helps repairers see what they'll be working on.")}</p>
         {#if photoPreview}
           <div class="flex items-start gap-3">
-            <img src={photoPreview} alt="Item" class="w-32 h-32 rounded-xl object-cover ring-1 ring-slate-200" />
-            <button type="button" class="btn-ghost btn-sm" on:click={removePhoto}><X size={16} /> Remove</button>
+            <img src={photoPreview} alt={$t('Item')} class="w-32 h-32 rounded-xl object-cover ring-1 ring-slate-200" />
+            <button type="button" class="btn-ghost btn-sm" on:click={removePhoto}><X size={16} /> {$t('Remove')}</button>
           </div>
         {:else}
           <CameraCapture on:capture={onPhoto} maxLongestEdge={1200} quality={0.8} />
@@ -273,22 +274,22 @@
 
       <!-- Customer (optional) -->
       <fieldset class="border-t border-slate-200 pt-5">
-        <legend class="text-sm font-semibold text-slate-700">About the customer <span class="font-normal text-slate-400">(optional)</span></legend>
-        <p class="text-sm text-slate-500 mt-1">Leave blank to register the item anonymously. The job number is enough to find them.</p>
+        <legend class="text-sm font-semibold text-slate-700">{$t('About the customer')} <span class="font-normal text-slate-400">{$t('(optional)')}</span></legend>
+        <p class="text-sm text-slate-500 mt-1">{$t('Leave blank to register the item anonymously. The job number is enough to find them.')}</p>
         <div class="mt-4 grid sm:grid-cols-2 gap-4">
           <div>
-            <label class="label" for="cn">First name</label>
+            <label class="label" for="cn">{$t('First name')}</label>
             <input id="cn" class="input" maxlength="50" bind:value={customerName} autocomplete="off" />
           </div>
           <div>
-            <label class="label" for="cc">Phone or email</label>
+            <label class="label" for="cc">{$t('Phone or email')}</label>
             <input id="cc" class="input" maxlength="100" bind:value={customerContact} autocomplete="off" />
           </div>
         </div>
         {#if hasPii}
           <label class="flex items-start gap-3 mt-4 cursor-pointer">
             <input type="checkbox" class="h-5 w-5 rounded border-slate-300 text-brand-600 mt-0.5" bind:checked={consent} />
-            <span class="text-sm text-slate-700">I've asked, and the customer is happy for their details to be stored for this repair.</span>
+            <span class="text-sm text-slate-700">{$t("I've asked, and the customer is happy for their details to be stored for this repair.")}</span>
           </label>
         {/if}
       </fieldset>
@@ -296,9 +297,9 @@
       {#if error}<p class="text-sm text-rose-600">{error}</p>{/if}
 
       <div class="flex justify-end gap-3">
-        <a href="/repairer" class="btn-ghost">Cancel</a>
+        <a href="/repairer" class="btn-ghost">{$t('Cancel')}</a>
         <button type="submit" class="btn-primary" disabled={busy}>
-          {busy ? 'Registering…' : 'Register repair'}
+          {busy ? $t('Registering…') : $t('Register repair')}
         </button>
       </div>
     </form>
