@@ -329,6 +329,30 @@ export const fr: Record<string, string> = {
   Email: 'E-mail',
   Password: 'Mot de passe',
   'Back to home': 'Retour à l’accueil',
+  'Choose your password': 'Choisissez votre mot de passe',
+  'First time here? Enter the email the repair café has for you and pick a password.':
+    'C’est votre première visite ? Saisissez l’e-mail que le repair café a pour vous et choisissez un mot de passe.',
+  'At least 10 characters, with an uppercase letter, a lowercase letter and a number.':
+    'Au moins 10 caractères, dont une majuscule, une minuscule et un chiffre.',
+  'Confirm password': 'Confirmez le mot de passe',
+  'Save password and sign in': 'Enregistrer le mot de passe et se connecter',
+  'First time here? Choose your password': 'Première visite ? Choisissez votre mot de passe',
+  'I already have a password — sign in': 'J’ai déjà un mot de passe — se connecter',
+  'Use at least 10 characters.': 'Utilisez au moins 10 caractères.',
+  'Add an uppercase letter.': 'Ajoutez une majuscule.',
+  'Add a lowercase letter.': 'Ajoutez une minuscule.',
+  'Add a number.': 'Ajoutez un chiffre.',
+  'The two passwords do not match.': 'Les deux mots de passe ne correspondent pas.',
+  // Server messages that can appear on the sign-in form.
+  'This account has no password yet. Choose one to get in.':
+    'Ce compte n’a pas encore de mot de passe. Choisissez-en un pour vous connecter.',
+  'No volunteer account found for that email. Check the address or ask an organiser.':
+    'Aucun compte bénévole pour cet e-mail. Vérifiez l’adresse ou demandez à un organisateur.',
+  'This is an organiser account. Ask an admin for a reset link.':
+    'Ceci est un compte organisateur. Demandez un lien de réinitialisation à un administrateur.',
+  'This account already has a password. Sign in instead.':
+    'Ce compte a déjà un mot de passe. Connectez-vous plutôt.',
+  'Please enter a valid email address': 'Saisissez une adresse e-mail valide',
 
   // ── My repairs (history) ───────────────────────────────────────────
   'Could not load your repairs': 'Impossible de charger vos réparations',

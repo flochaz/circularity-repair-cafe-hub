@@ -1,5 +1,5 @@
 import type { App } from '../lib/router.js';
-import { loginSchema, passwordSchema } from '@circularity/shared';
+import { emailSchema, loginSchema, passwordSchema } from '@circularity/shared';
 import { db } from '../db/index.js';
 import { passwordResetTokens, users } from '../db/schema.js';
 import { hashPassword, verifyPassword } from '../utils/password.js';
@@ -61,6 +61,16 @@ export async function authRoutes(app: App): Promise<void> {
         reply.code(401).send({ error: 'Invalid credentials', code: 'auth/invalid' });
         return;
       }
+      // An account with no password yet has never been activated. Say so, so
+      // the sign-in form can offer "choose your password" instead of a flat
+      // "wrong password". See POST /api/auth/activate below.
+      if (!user.passwordHash) {
+        reply.code(409).send({
+          error: 'This account has no password yet. Choose one to get in.',
+          code: 'auth/not_activated',
+        });
+        return;
+      }
       const check = await verifyPassword(password, user.passwordHash);
       if (!check.ok) {
         await db.insert(loginAttempts).values({ key });
@@ -106,6 +116,100 @@ export async function authRoutes(app: App): Promise<void> {
       };
     }
   );
+
+  // First-time activation. An account that was imported (or otherwise created)
+  // without a password is "unactivated": `password_hash` is an empty string.
+  // The person picks their own password here, knowing only their email — no
+  // reset link to follow and no email for an organiser to send out.
+  //
+  // Only `repairer` accounts may self-activate. An organiser account always
+  // needs a reset link from another organiser, so nobody can claim one by
+  // knowing its email address.
+  app.post('/api/auth/activate', async (request, reply) => {
+    const body = (request.body ?? {}) as { email?: unknown; password?: unknown };
+    const email = emailSchema.safeParse(typeof body.email === 'string' ? body.email.trim() : body.email);
+    if (!email.success) {
+      reply.code(400).send({ error: 'Please enter a valid email address', code: 'auth/invalid_email' });
+      return;
+    }
+    const password = passwordSchema.safeParse(body.password);
+    if (!password.success) {
+      reply.code(400).send({
+        error: password.error.issues[0]?.message ?? 'Password too weak',
+        code: 'auth/weak_password',
+      });
+      return;
+    }
+    const normalized = email.data.toLowerCase();
+    const key = loginKey(request.ip, normalized);
+    if ((await recentFailures(key)) >= LOGIN_MAX_FAILURES) {
+      reply.code(429).send({
+        statusCode: 429,
+        error: 'Too many attempts. Wait 10 minutes and try again.',
+        code: 'auth/rate_limited',
+      });
+      return;
+    }
+    const [user] = await db.select().from(users).where(eq(users.email, normalized)).limit(1);
+    if (!user || !user.isActive) {
+      await db.insert(loginAttempts).values({ key });
+      reply.code(404).send({
+        error: 'No volunteer account found for that email. Check the address or ask an organiser.',
+        code: 'auth/no_account',
+      });
+      return;
+    }
+    if (user.role !== 'repairer') {
+      reply.code(403).send({
+        error: 'This is an organiser account. Ask an admin for a reset link.',
+        code: 'auth/admin_reset',
+      });
+      return;
+    }
+    if (user.passwordHash) {
+      reply.code(409).send({
+        error: 'This account already has a password. Sign in instead.',
+        code: 'auth/already_activated',
+      });
+      return;
+    }
+    const passwordHash = await hashPassword(password.data);
+    await db
+      .update(users)
+      .set({ passwordHash, updatedAt: new Date(), lastLoginAt: new Date() })
+      .where(eq(users.id, user.id));
+
+    const tokens = await app.issueTokens({
+      id: user.id,
+      email: user.email,
+      role: user.role,
+      displayName: user.displayName,
+    });
+    reply.setCookie(REFRESH_COOKIE, tokens.refreshToken, {
+      httpOnly: true,
+      sameSite: 'lax',
+      path: '/',
+      maxAge: 60 * 60 * 24 * env.REFRESH_TOKEN_DAYS,
+    });
+    await audit({
+      request,
+      actorId: user.id,
+      actorType: user.role,
+      action: 'auth.activate',
+      entityType: 'user',
+      entityId: user.id,
+    });
+    return {
+      accessToken: tokens.accessToken,
+      user: {
+        id: user.id,
+        email: user.email,
+        displayName: user.displayName,
+        role: user.role,
+        avatarUrl: user.avatarUrl,
+      },
+    };
+  });
 
   app.post('/api/auth/logout', async (request, reply) => {
     const raw = request.cookies[REFRESH_COOKIE];
