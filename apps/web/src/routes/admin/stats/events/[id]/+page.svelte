@@ -4,7 +4,7 @@
   import { api } from '$lib/api';
   import Icon from '@iconify/svelte';
   import { categoryIcon } from '$lib/categoryIcon';
-  import { ArrowLeft, Wrench, CheckCircle2, XCircle, PackageX, Hourglass, Clock, Users, Leaf, Laptop } from 'lucide-svelte';
+  import { ArrowLeft, Wrench, CheckCircle2, XCircle, PackageX, Hourglass, Clock, Users, Scale, Laptop } from 'lucide-svelte';
 
   type Status = 'waiting' | 'in_progress' | 'completed' | 'cannot_repair' | 'awaiting_return' | 'returned';
 
@@ -29,6 +29,7 @@
       avgDurationMin: number;
       totalDurationMin: number;
       environmentalSavingKg: number;
+      savedWeightKg: number;
     };
     /** Computers seen here, when the cafe offers Linux help. Null otherwise. */
     linux: {
@@ -138,8 +139,9 @@
       <p class="text-xs text-slate-400 mt-0.5">{fmtDuration(detail.totals.totalDurationMin)} total</p>
     </div>
     <div class="card p-4">
-      <div class="flex items-center gap-2 text-slate-500 text-xs"><Leaf size={14} /> CO₂ saved</div>
-      <p class="text-2xl font-bold mt-1">{detail.totals.environmentalSavingKg.toFixed(1)}<span class="text-sm font-normal text-slate-500"> kg</span></p>
+      <div class="flex items-center gap-2 text-slate-500 text-xs"><Scale size={14} /> Objects saved</div>
+      <p class="text-2xl font-bold mt-1">{detail.totals.savedWeightKg.toFixed(1)}<span class="text-sm font-normal text-slate-500"> kg</span></p>
+      <p class="text-xs text-slate-400 mt-0.5">weight of repaired items</p>
     </div>
   </div>
 

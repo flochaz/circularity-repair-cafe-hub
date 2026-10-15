@@ -123,6 +123,7 @@ describe('a repair session from start to finish', () => {
         faultDescription: 'Does not pop up',
         itemCategoryId: state.categoryId,
         co2FactorId: state.co2FactorId,
+        weightKg: 2.5,
       },
     });
     expect(res.status).toBe(200);
@@ -241,6 +242,8 @@ describe('a repair session from start to finish', () => {
     expect(overview.body.completedCount).toBe(1);
     expect(overview.body.successRate).toBe(100);
     expect(overview.body.environmentalSavingKg).toBeGreaterThan(0);
+    // The kilos of items actually repaired, shown instead of carbon.
+    expect(overview.body.savedWeightKg).toBe(2.5);
 
     const heatmap = await call('/api/admin/stats/heatmap', { token: state.admin });
     expect(heatmap.body).toEqual([expect.objectContaining({ day: today, events: 1, repairs: 2, completed: 1 })]);
@@ -249,12 +252,14 @@ describe('a repair session from start to finish', () => {
     expect(events.body[0].date).toBe(today);
     const one = await call(`/api/admin/stats/events/${state.eventId}`, { token: state.admin });
     expect(one.body.totals.repairCount).toBe(2);
+    expect(one.body.totals.savedWeightKg).toBe(2.5);
     expect(one.body.repairers[0].displayName).toBe('Rita Repairer');
     expect(one.body.jobs.length).toBe(2);
 
     const pub = await call('/api/public/stats');
     expect(pub.body.repairCount).toBe(2);
     expect(pub.body.completedCount).toBe(1);
+    expect(pub.body.objectsSavedKg).toBe(2.5);
     expect(pub.body.volunteerCount).toBe(1);
   });
 

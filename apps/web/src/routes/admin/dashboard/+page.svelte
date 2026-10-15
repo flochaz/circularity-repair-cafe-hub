@@ -416,7 +416,7 @@
         <dl class="mt-3 grid grid-cols-2 gap-3">
           <div><dt class="text-xs text-slate-500">Repairs</dt><dd class="text-xl font-bold">{data.stats.totalRepairs}</dd></div>
           <div><dt class="text-xs text-slate-500">Sessions</dt><dd class="text-xl font-bold">{data.stats.totalEvents}</dd></div>
-          <div><dt class="text-xs text-slate-500">CO₂ saved</dt><dd class="text-xl font-bold">{Math.round(Number(data.stats.totalSavingsKg))}<span class="text-sm font-medium"> kg</span></dd></div>
+          <div><dt class="text-xs text-slate-500">Objects saved</dt><dd class="text-xl font-bold">{Number(data.stats.weightSavedKg ?? 0).toFixed(1)}<span class="text-sm font-medium"> kg</span></dd></div>
           <div><dt class="text-xs text-slate-500">Volunteers</dt><dd class="text-xl font-bold">{data.stats.activeRepairers}</dd></div>
         </dl>
         <a href="/admin/stats" class="mt-3 inline-block text-sm text-brand-700 hover:underline">All the statistics</a>

@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { api } from '$lib/api';
-  import { CalendarDays, Wrench, Users, Leaf, Clock, CheckCircle2 } from 'lucide-svelte';
+  import { CalendarDays, Wrench, Users, Scale, Clock, CheckCircle2 } from 'lucide-svelte';
 
   type Range = '3m' | '6m' | '12m' | 'all';
   type Overview = {
@@ -17,6 +17,7 @@
     avgRepairsPerEvent: number;
     environmentalSavingKg: number;
     totalWeightKg: number;
+    savedWeightKg: number;
     satisfactionRate: number | null;
     satisfactionCount: number;
   };
@@ -204,9 +205,9 @@
       <p class="text-xs text-slate-400 mt-0.5">from accept to done</p>
     </div>
     <div class="card p-4">
-      <div class="flex items-center gap-2 text-slate-500 text-xs"><Leaf size={14} /> CO₂ saved</div>
-      <p class="text-2xl font-bold mt-1">{overview.environmentalSavingKg.toFixed(1)}<span class="text-sm font-normal text-slate-500"> kg</span></p>
-      <p class="text-xs text-slate-400 mt-0.5">est. from completed jobs</p>
+      <div class="flex items-center gap-2 text-slate-500 text-xs"><Scale size={14} /> Objects saved</div>
+      <p class="text-2xl font-bold mt-1">{overview.savedWeightKg.toFixed(1)}<span class="text-sm font-normal text-slate-500"> kg</span></p>
+      <p class="text-xs text-slate-400 mt-0.5">weight of repaired items</p>
     </div>
   </div>
 {/if}

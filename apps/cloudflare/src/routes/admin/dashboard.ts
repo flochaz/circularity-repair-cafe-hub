@@ -56,6 +56,12 @@ export async function adminDashboardRoutes(app: App): Promise<void> {
       .select({ totalSavings: sum(repairJobs.co2SavingKg) })
       .from(repairJobs)
       .where(eq(repairJobs.status, 'completed'));
+    // Kilos of things actually repaired — the figure this cafe shows instead of
+    // carbon. Same rule as the statistics page so the two always agree.
+    const [{ totalWeight }] = await db
+      .select({ totalWeight: sum(repairJobs.weightKg) })
+      .from(repairJobs)
+      .where(eq(repairJobs.status, 'completed'));
     const [{ activeRepairers }] = await db
       .select({ activeRepairers: count() })
       .from(users)
@@ -163,6 +169,7 @@ export async function adminDashboardRoutes(app: App): Promise<void> {
         totalRepairs: Number(totalRepairs),
         totalEvents: Number(totalEvents),
         totalSavingsKg: Number(totalSavings ?? 0),
+        weightSavedKg: Math.round(Number(totalWeight ?? 0) * 100) / 100,
         activeRepairers: Number(activeRepairers),
       },
       recentActivity: recent,

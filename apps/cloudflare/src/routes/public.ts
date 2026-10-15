@@ -296,6 +296,7 @@ export async function publicRoutes(app: App): Promise<void> {
         COUNT(rj.id) FILTER (WHERE rj.status = 'completed') AS completed,
         COUNT(rj.id) FILTER (WHERE rj.status = 'cannot_repair') AS cannot_repair,
         COALESCE(SUM(rj.co2_saving_kg) FILTER (WHERE rj.status = 'completed'), 0) AS savings_kg,
+        COALESCE(SUM(rj.weight_kg) FILTER (WHERE rj.status = 'completed'), 0) AS saved_weight_kg,
         -- How many finished repairs actually carry a figure. The total is a sum
         -- over these, not over every repair, and the page says so.
         COUNT(rj.id) FILTER (WHERE rj.status = 'completed' AND rj.co2_saving_kg IS NOT NULL) AS savings_counted
@@ -320,6 +321,9 @@ export async function publicRoutes(app: App): Promise<void> {
       completedCount: completed,
       successRate: closed > 0 ? Math.round((completed / closed) * 100) : 0,
       co2SavedKg: Math.round(Number(r.savings_kg ?? 0) * 10) / 10,
+      // Kilos of repaired items, for a cafe that reports saved weight instead
+      // of carbon. This public copy mirrors the admin statistics page.
+      objectsSavedKg: Math.round(Number(r.saved_weight_kg ?? 0) * 10) / 10,
       // What the CO2 total is actually based on, so the page can say
       // "from 78% of repairs" rather than implying it covers all of them.
       co2CountedRepairs: Number(r.savings_counted ?? 0),

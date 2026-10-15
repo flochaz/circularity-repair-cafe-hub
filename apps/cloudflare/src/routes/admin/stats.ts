@@ -49,6 +49,7 @@ export async function adminStatsRoutes(app: App): Promise<void> {
         COUNT(DISTINCT rj.repairer_id) FILTER (WHERE rj.repairer_id IS NOT NULL) AS repairer_count,
         COALESCE(SUM(rj.co2_saving_kg) FILTER (WHERE rj.status = 'completed'), 0) AS savings_kg,
         COALESCE(SUM(rj.weight_kg), 0) AS weight_kg_total,
+        COALESCE(SUM(rj.weight_kg) FILTER (WHERE rj.status = 'completed'), 0) AS saved_weight_kg,
         COUNT(rj.id) FILTER (WHERE rj.satisfaction = 'satisfied') AS satisfied,
         COUNT(rj.id) FILTER (WHERE rj.satisfaction = 'not_satisfied') AS not_satisfied,
         COALESCE(AVG(${DURATION_MIN})
@@ -79,6 +80,9 @@ export async function adminStatsRoutes(app: App): Promise<void> {
       // Total weight of items recorded, in kilograms. Zero when no cafe using
       // this hub weighs items.
       totalWeightKg: Math.round(Number(r.weight_kg_total ?? 0) * 100) / 100,
+      // Weight of the items that were actually repaired — the headline figure
+      // for a cafe that counts kilos saved rather than carbon.
+      savedWeightKg: Math.round(Number(r.saved_weight_kg ?? 0) * 100) / 100,
       // How visitors answered at the exit. Null when nobody answered, so a
       // cafe that does not ask never shows a meaningless figure.
       satisfactionRate: satisfied + notSatisfied > 0 ? Math.round((satisfied / (satisfied + notSatisfied)) * 100) : null,
@@ -184,6 +188,7 @@ export async function adminStatsRoutes(app: App): Promise<void> {
         COUNT(*) FILTER (WHERE status = 'returned') AS returned,
         COUNT(*) FILTER (WHERE status IN ('waiting','in_progress')) AS open_count,
         COALESCE(SUM(co2_saving_kg) FILTER (WHERE status = 'completed'), 0) AS savings_kg,
+        COALESCE(SUM(weight_kg) FILTER (WHERE status = 'completed'), 0) AS saved_weight_kg,
         COALESCE(AVG(${DURATION_MIN_BARE})
                  FILTER (WHERE accepted_at IS NOT NULL AND completed_at IS NOT NULL), 0) AS avg_duration_min,
         COALESCE(SUM(${DURATION_MIN_BARE})
@@ -273,6 +278,7 @@ export async function adminStatsRoutes(app: App): Promise<void> {
         avgDurationMin: Math.round(Number(t.avg_duration_min ?? 0)),
         totalDurationMin: Math.round(Number(t.total_duration_min ?? 0)),
         environmentalSavingKg: Number(t.savings_kg ?? 0),
+        savedWeightKg: Math.round(Number(t.saved_weight_kg ?? 0) * 100) / 100,
       },
       repairers: repairersRows.rows.map((r: any) => ({
         id: r.id,
