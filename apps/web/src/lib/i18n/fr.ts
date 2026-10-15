@@ -339,4 +339,59 @@ export const fr: Record<string, string> = {
   'Page {page} of {total}': 'Page {page} sur {total}',
   Newer: 'Plus récentes',
   Older: 'Plus anciennes',
+
+  // ── My profile ─────────────────────────────────────────────────────
+  'Could not load your profile': 'Impossible de charger votre profil',
+  'Could not save': 'Impossible d’enregistrer',
+  'Could not remove photo': 'Impossible de supprimer la photo',
+  'Remove your photo?': 'Supprimer votre photo ?',
+  'This is what visitors see on the public team page.': 'Voici ce que les visiteurs voient sur la page publique de l’équipe.',
+  'View my public page': 'Voir ma page publique',
+  'Change photo': 'Changer la photo',
+  'Upload photo': 'Ajouter une photo',
+  'Remove photo': 'Supprimer la photo',
+  'JPEG, PNG or WebP. Max ~5 MB. Square photos look best.': 'JPEG, PNG ou WebP. Environ 5 Mo max. Les photos carrées rendent le mieux.',
+  'Display name': 'Nom affiché',
+  'How your name appears on the public team page and the live shop-floor board.':
+    'Comment votre nom apparaît sur la page publique de l’équipe et sur l’écran de salle.',
+  'About me': 'À propos de moi',
+  'A few sentences about you. What you love fixing, how you got into it, anything that makes you human.':
+    'Quelques phrases sur vous. Ce que vous aimez réparer, comment vous avez commencé, ce qui vous rend humain.',
+  '{n}/2000 characters': '{n}/2000 caractères',
+  'Show me on the public team page': 'M’afficher sur la page publique de l’équipe',
+  'When off, your public profile returns "not found" and your card doesn\'t appear in the team listings.':
+    'Désactivé, votre profil public renvoie « introuvable » et votre fiche n’apparaît pas dans la liste de l’équipe.',
+  'Feature me on the home page': 'Me mettre en avant sur la page d’accueil',
+  'Turn on "Show me on the public team page" first.': 'Activez d’abord « M’afficher sur la page publique de l’équipe ».',
+  'When off, you still appear on the team listing but not on the home page "Meet our team" strip.':
+    'Désactivé, vous apparaissez toujours dans la liste de l’équipe mais pas dans la section « Notre équipe » de la page d’accueil.',
+  'Saved ✓': 'Enregistré ✓',
+  'Save changes': 'Enregistrer',
+  Share: 'Partager',
+  'Invite people to the next session with a card made for you. It shows your photo, your name, what you fix, what else people can bring, and when and where the next session is.':
+    'Invitez des personnes à la prochaine séance avec une carte créée pour vous. Elle montre votre photo, votre nom, ce que vous réparez, ce que d’autres peuvent apporter, et quand et où a lieu la prochaine séance.',
+  'Turn on "Show me on the public team page" and save, then you can share your profile.':
+    'Activez « M’afficher sur la page publique de l’équipe » et enregistrez, puis vous pourrez partager votre profil.',
+  "Your skills, email address and join date are managed by your repair cafe's admin. Ask them if anything needs updating.":
+    'Vos compétences, votre adresse e-mail et votre date d’arrivée sont gérés par l’administrateur de votre repair café. Demandez-lui en cas de besoin.',
+
+  // ── Session photos ─────────────────────────────────────────────────
+  'Could not load your sessions': 'Impossible de charger vos séances',
+  'Could not load the photos for this session': 'Impossible de charger les photos de cette séance',
+  ' · on now': ' · en cours',
+  'No sessions yet': 'Aucune séance pour le moment',
+  'Once a session has been set up you can add photos to it here.':
+    'Une fois une séance créée, vous pourrez y ajouter des photos ici.',
+  'Which session?': 'Quelle séance ?',
+  '{n} photos': '{n} photos',
+  'Please ask before you photograph anyone, and avoid names, addresses or anything else personal in shot. An admin can hide a photo at any time.':
+    'Demandez l’autorisation avant de photographier quelqu’un, et évitez les noms, adresses ou toute autre information personnelle sur la photo. Un administrateur peut masquer une photo à tout moment.',
+  'Add photos': 'Ajouter des photos',
+  'Take a photo, choose one from your device, or drag photos in from a folder.':
+    'Prenez une photo, choisissez-en une sur votre appareil, ou glissez des photos depuis un dossier.',
+  'Photos of this session': 'Photos de cette séance',
+  'No photos for this session yet. Yours will show up here.':
+    'Aucune photo pour cette séance pour le moment. Les vôtres apparaîtront ici.',
+  'Add photos of a session so the website shows what we actually do. Photos of the room, the team at work, or a repair in progress all work well.':
+    'Ajoutez des photos d’une séance pour que le site montre ce que nous faisons vraiment. Des photos de la salle, de l’équipe au travail ou d’une réparation en cours conviennent bien.',
 };
