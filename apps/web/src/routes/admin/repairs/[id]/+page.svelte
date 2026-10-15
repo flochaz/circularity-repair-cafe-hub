@@ -38,6 +38,8 @@
     environmentalSavingKg: '' as string | number,
     weightKg: '' as string | number,
     isFirstVisit: false,
+    satisfaction: '' as '' | 'satisfied' | 'not_satisfied',
+    satisfactionComment: '',
     status: 'waiting',
   };
 
@@ -60,6 +62,8 @@
       environmentalSavingKg: detail.job.environmentalSavingKg ?? '',
       weightKg: detail.job.weightKg ?? '',
       isFirstVisit: detail.job.isFirstVisit ?? false,
+      satisfaction: detail.job.satisfaction ?? '',
+      satisfactionComment: detail.job.satisfactionComment ?? '',
       status: detail.job.status,
     };
   }
@@ -84,6 +88,8 @@
           environmentalSavingKg: form.environmentalSavingKg === '' ? null : Number(form.environmentalSavingKg),
           weightKg: form.weightKg === '' ? null : Number(form.weightKg),
           isFirstVisit: form.isFirstVisit,
+          satisfaction: form.satisfaction || null,
+          satisfactionComment: form.satisfactionComment || null,
         },
       });
       await load();
@@ -221,6 +227,17 @@
         <option value="cannot_repair">Cannot repair</option>
         <option value="awaiting_return">Awaiting return</option>
       </select>
+    </div>
+    <div class="grid sm:grid-cols-2 gap-3">
+      <div>
+        <label class="label" for="sat">Satisfaction</label>
+        <select id="sat" class="input" bind:value={form.satisfaction}>
+          <option value="">Not recorded</option>
+          <option value="satisfied">Satisfied</option>
+          <option value="not_satisfied">Not satisfied</option>
+        </select>
+      </div>
+      <div><label class="label" for="satc">Comment</label><input id="satc" class="input" maxlength="500" bind:value={form.satisfactionComment} /></div>
     </div>
     <div class="flex justify-end"><button class="btn-primary" on:click={save} disabled={busy}>Save</button></div>
   </div>
