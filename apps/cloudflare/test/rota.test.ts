@@ -96,6 +96,25 @@ describe('the volunteer sign-up board', () => {
     expect(bad.status).toBe(404);
   });
 
+  it('lets a volunteer pick themselves from the list, and refuses a stranger', async () => {
+    const board = await call(`/api/rota/${state.token}`);
+    expect(board.body.volunteers.length).toBeGreaterThan(0);
+    const me = board.body.volunteers[0];
+    const res = await call(`/api/rota/${state.token}/signups`, {
+      json: { userId: me.id, choices: [{ roleId: state.roleId, choice: 'yes' }] },
+    });
+    expect(res.status).toBe(200);
+    const added = res.body.signups.find((s: any) => s.userId === me.id);
+    expect(added.name).toBe(me.name);
+    // Tidy up so the rest of the flow sees exactly one answer.
+    await call(`/api/rota/${state.token}/signups/${res.body.editToken}`, { method: 'DELETE' });
+
+    const stranger = await call(`/api/rota/${state.token}/signups`, {
+      json: { userId: '00000000-0000-4000-8000-000000000000', choices: [] },
+    });
+    expect(stranger.status).toBe(400);
+  });
+
   it('lets the organiser edit the roles', async () => {
     const added = await call(`/api/admin/events/${state.eventId}/rota/roles`, {
       token: state.admin,

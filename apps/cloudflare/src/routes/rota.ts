@@ -1,6 +1,6 @@
 import type { App } from '../lib/router.js';
 import { db, inList } from '../db/index.js';
-import { cafes, eventRoles, eventSignupChoices, eventSignups, events } from '../db/schema.js';
+import { cafes, eventRoles, eventSignupChoices, eventSignups, events, users } from '../db/schema.js';
 import { asc, eq } from 'drizzle-orm';
 import { rotaRoleSchema, rotaRoleUpdateSchema, rotaSignupSchema } from '@circularity/shared';
 import { randomToken } from '../utils/tokens.js';
@@ -111,6 +111,7 @@ function boardPayload(event: EventRow, board: Awaited<ReturnType<typeof loadBoar
     roles: board.roles.map((r) => ({ id: r.id, label: r.label, capacity: r.capacity, sortOrder: r.sortOrder })),
     signups: board.signups.map((s) => ({
       id: s.id,
+      userId: s.userId,
       name: s.name,
       comment: s.comment,
       choices: board.bySignup.get(s.id) ?? {},
@@ -124,6 +125,33 @@ async function validChoices(eventId: string, choices: Array<{ roleId: string; ch
   const roles = await db.select({ id: eventRoles.id }).from(eventRoles).where(eq(eventRoles.eventId, eventId));
   const allowed = new Set(roles.map((r) => r.id));
   return choices.filter((c) => allowed.has(c.roleId));
+}
+
+/** Active volunteers, for the name picker on the open page. Names only. */
+async function volunteerList() {
+  return db
+    .select({ id: users.id, name: users.displayName })
+    .from(users)
+    .where(eq(users.isActive, true))
+    .orderBy(asc(users.displayName));
+}
+
+/**
+ * Who is answering: a volunteer picked from the list, or a typed name for
+ * somebody who is not in the hub. Picking from the list keeps the names tidy
+ * and ties the answer to the account.
+ */
+async function resolveRespondent(data: { userId?: string | null; name?: string | null }) {
+  if (data.userId) {
+    const [u] = await db
+      .select({ id: users.id, displayName: users.displayName })
+      .from(users)
+      .where(eq(users.id, data.userId))
+      .limit(1);
+    if (!u) return null;
+    return { userId: u.id, name: u.displayName };
+  }
+  return { userId: null, name: (data.name ?? '').trim() };
 }
 
 async function replaceChoices(signupId: string, choices: Array<{ roleId: string; choice: string }>) {
@@ -146,7 +174,7 @@ export async function rotaRoutes(app: App): Promise<void> {
       return;
     }
     const board = await loadBoard(event.id);
-    return boardPayload(event, board);
+    return { ...boardPayload(event, board), volunteers: await volunteerList() };
   });
 
   app.post('/api/rota/:token/signups', async (request, reply) => {
@@ -165,13 +193,19 @@ export async function rotaRoutes(app: App): Promise<void> {
       reply.code(400).send({ error: 'Validation failed', code: 'validation/failed', details: parsed.error.flatten() });
       return;
     }
+    const respondent = await resolveRespondent(parsed.data);
+    if (!respondent) {
+      reply.code(400).send({ error: 'That volunteer is not in the hub', code: 'rota/unknown_volunteer' });
+      return;
+    }
     const choices = await validChoices(event.id, parsed.data.choices);
     const editToken = randomToken(16);
     const [created] = await db
       .insert(eventSignups)
       .values({
         eventId: event.id,
-        name: parsed.data.name.trim(),
+        userId: respondent.userId,
+        name: respondent.name,
         comment: parsed.data.comment?.trim() || null,
         token: editToken,
       })
@@ -206,10 +240,20 @@ export async function rotaRoutes(app: App): Promise<void> {
       reply.code(400).send({ error: 'Validation failed', code: 'validation/failed', details: parsed.error.flatten() });
       return;
     }
+    const respondent = await resolveRespondent(parsed.data);
+    if (!respondent) {
+      reply.code(400).send({ error: 'That volunteer is not in the hub', code: 'rota/unknown_volunteer' });
+      return;
+    }
     const choices = await validChoices(event.id, parsed.data.choices);
     await db
       .update(eventSignups)
-      .set({ name: parsed.data.name.trim(), comment: parsed.data.comment?.trim() || null, updatedAt: new Date() })
+      .set({
+        userId: respondent.userId,
+        name: respondent.name,
+        comment: parsed.data.comment?.trim() || null,
+        updatedAt: new Date(),
+      })
       .where(eq(eventSignups.id, signup.id));
     await replaceChoices(signup.id, choices);
     const board = await loadBoard(event.id);

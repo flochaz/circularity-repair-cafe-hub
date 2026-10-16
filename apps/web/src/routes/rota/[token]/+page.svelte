@@ -19,6 +19,7 @@
   }
   interface Signup {
     id: string;
+    userId: string | null;
     name: string;
     comment: string | null;
     choices: Record<string, Choice>;
@@ -29,11 +30,14 @@
     roles: Role[];
     signups: Signup[];
     summary: Record<string, { yes: number; ifNeeded: number; no: number }>;
+    volunteers: Array<{ id: string; name: string }>;
   }
 
   $: token = $page.params.token;
   let board: Board | null = null;
   let loadError = '';
+  // '' means not chosen yet; '__other__' means "not in the list", then `name`.
+  let selectedUserId = '';
   let name = '';
   let comment = '';
   let myChoices: Record<string, Choice> = {};
@@ -42,6 +46,8 @@
   let editToken = '';
   let copied = false;
   let error = '';
+  // How the answers are shown: the Framadate-style table, or grouped by role.
+  let view: 'table' | 'list' = 'table';
 
   const storeKey = () => `rota:${token}`;
 
@@ -53,9 +59,14 @@
       editToken = mine.editToken;
       const found = b.signups.find((s) => s.id === mine.signupId);
       if (found) {
-        name = found.name;
         comment = found.comment ?? '';
         myChoices = { ...found.choices };
+        if (found.userId) {
+          selectedUserId = found.userId;
+        } else {
+          selectedUserId = '__other__';
+          name = found.name;
+        }
         saved = true;
       }
     } catch {
@@ -66,8 +77,12 @@
   async function load(): Promise<void> {
     try {
       board = await api<Board>(`/api/rota/${token}`, { autoRefresh: false });
-      if (!name && $auth?.user?.displayName) name = $auth.user.displayName;
       readMine(board);
+      // If a signed-in volunteer has not answered yet, start them off on their
+      // own name.
+      if (!saved && !selectedUserId && $auth?.user && board.volunteers.some((v) => v.id === $auth!.user.id)) {
+        selectedUserId = $auth.user.id;
+      }
     } catch (err) {
       loadError = (err as Error)?.message || tNow('Could not load this sign-up');
     }
@@ -86,7 +101,12 @@
   }
 
   async function save(): Promise<void> {
-    if (!name.trim()) {
+    const isOther = selectedUserId === '__other__';
+    if (!isOther && !selectedUserId) {
+      error = tNow('Please choose your name');
+      return;
+    }
+    if (isOther && !name.trim()) {
       error = tNow('Please add your name');
       return;
     }
@@ -94,7 +114,12 @@
     error = '';
     try {
       const choices = Object.entries(myChoices).map(([roleId, choice]) => ({ roleId, choice }));
-      const payload = { name: name.trim(), comment: comment.trim() || null, choices };
+      const payload = {
+        userId: isOther ? null : selectedUserId,
+        name: isOther ? name.trim() : null,
+        comment: comment.trim() || null,
+        choices,
+      };
       if (editToken) {
         board = await api<Board>(`/api/rota/${token}/signups/${editToken}`, {
           method: 'PUT',
@@ -161,6 +186,14 @@
     return time.slice(0, 5);
   }
 
+  /** How one cell reads in the table, with its colour. */
+  function label(choice: Choice | undefined): { text: string; cls: string } {
+    if (choice === 'yes') return { text: tNow('Yes'), cls: 'text-emerald-700 font-semibold' };
+    if (choice === 'if_needed') return { text: tNow('If needed'), cls: 'text-amber-600' };
+    if (choice === 'no') return { text: tNow('No'), cls: 'text-slate-400' };
+    return { text: '', cls: '' };
+  }
+
   const CHOICES: Array<{ value: Choice; key: string; on: string }> = [
     { value: 'yes', key: 'Yes', on: 'bg-emerald-600 text-white border-emerald-600' },
     { value: 'if_needed', key: 'If needed', on: 'bg-amber-500 text-white border-amber-500' },
@@ -203,8 +236,17 @@
           <h2 class="font-semibold text-slate-900">{$t('Your answer')}</h2>
 
           <div class="mt-4">
-            <label class="label" for="name">{$t('Your name')}</label>
-            <input id="name" class="input" type="text" autocomplete="name" maxlength="80" bind:value={name} />
+            <label class="label" for="who">{$t('Your name')}</label>
+            <select id="who" class="input" bind:value={selectedUserId}>
+              <option value="">{$t('Choose your name…')}</option>
+              {#each board.volunteers as volunteer (volunteer.id)}
+                <option value={volunteer.id}>{volunteer.name}</option>
+              {/each}
+              <option value="__other__">{$t('Someone else (type the name)')}</option>
+            </select>
+            {#if selectedUserId === '__other__'}
+              <input class="input mt-2" type="text" maxlength="80" placeholder={$t('Name')} bind:value={name} />
+            {/if}
           </div>
 
           <div class="mt-5 space-y-3">
@@ -264,7 +306,58 @@
 
       {#if board.signups.length > 0}
         <section class="mt-6">
-          <h2 class="mb-3 font-semibold text-slate-900">{$t('Who answered')}</h2>
+          <div class="mb-3 flex items-center justify-between gap-3">
+            <h2 class="font-semibold text-slate-900">{$t('Who answered')}</h2>
+            <div class="inline-flex overflow-hidden rounded-lg border border-slate-200 text-sm">
+              <button
+                type="button"
+                class="px-3 py-1.5 transition-colors {view === 'table' ? 'bg-slate-800 text-white' : 'bg-white text-slate-600 hover:bg-slate-50'}"
+                on:click={() => (view = 'table')}>{$t('Table')}</button>
+              <button
+                type="button"
+                class="px-3 py-1.5 transition-colors {view === 'list' ? 'bg-slate-800 text-white' : 'bg-white text-slate-600 hover:bg-slate-50'}"
+                on:click={() => (view = 'list')}>{$t('List')}</button>
+            </div>
+          </div>
+
+          {#if view === 'table'}
+            <div class="card overflow-x-auto p-0">
+              <table class="w-full border-collapse text-sm">
+                <thead>
+                  <tr class="border-b border-slate-200 text-left text-xs text-slate-500">
+                    <th class="sticky left-0 z-10 bg-white px-3 py-2 font-medium">{$t('Name')}</th>
+                    {#each board.roles as role (role.id)}
+                      <th class="px-3 py-2 font-medium">
+                        {role.label}
+                        {#if role.capacity}<span class="block text-[10px] font-normal text-slate-400">{$t('{n} needed', { n: role.capacity })}</span>{/if}
+                      </th>
+                    {/each}
+                  </tr>
+                </thead>
+                <tbody>
+                  {#each board.signups as signup (signup.id)}
+                    <tr class="border-b border-slate-100">
+                      <th class="sticky left-0 z-10 bg-white px-3 py-2 text-left font-medium text-slate-800">{signup.name}</th>
+                      {#each board.roles as role (role.id)}
+                        <td class="px-3 py-2 {label(signup.choices[role.id]).cls}">{label(signup.choices[role.id]).text}</td>
+                      {/each}
+                    </tr>
+                  {/each}
+                </tbody>
+                <tfoot>
+                  <tr class="bg-slate-50 text-slate-600">
+                    <th class="sticky left-0 z-10 bg-slate-50 px-3 py-2 text-left font-medium">{$t('Total')}</th>
+                    {#each board.roles as role (role.id)}
+                      {@const count = board.summary[role.id] ?? { yes: 0, ifNeeded: 0, no: 0 }}
+                      <td class="px-3 py-2">
+                        <span class="font-semibold text-emerald-700">{count.yes}</span>{#if count.ifNeeded}<span class="text-amber-600"> +{count.ifNeeded}</span>{/if}
+                      </td>
+                    {/each}
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          {:else}
           <div class="space-y-3">
             {#each board.roles as role (role.id)}
               {@const count = board.summary[role.id] ?? { yes: 0, ifNeeded: 0, no: 0 }}
@@ -289,6 +382,7 @@
               </div>
             {/each}
           </div>
+          {/if}
         </section>
 
         {#if board.signups.some((s) => s.comment)}

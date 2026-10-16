@@ -400,19 +400,26 @@ export const rotaRoleSchema = z.object({
 
 export const rotaRoleUpdateSchema = rotaRoleSchema.partial();
 
-/** One person's answers, submitted through the open link. */
-export const rotaSignupSchema = z.object({
-  name: z.string().min(1, 'Please add your name').max(80),
-  comment: z.string().max(500).optional().nullable(),
-  choices: z
-    .array(
-      z.object({
-        roleId: z.string().uuid(),
-        choice: rotaChoiceSchema,
-      }),
-    )
-    .max(100),
-});
+/** One person's answers, submitted through the open link. They either pick
+ *  themselves from the volunteer list (userId) or type a name. */
+export const rotaSignupSchema = z
+  .object({
+    name: z.string().max(80).optional().nullable(),
+    userId: z.string().uuid().optional().nullable(),
+    comment: z.string().max(500).optional().nullable(),
+    choices: z
+      .array(
+        z.object({
+          roleId: z.string().uuid(),
+          choice: rotaChoiceSchema,
+        }),
+      )
+      .max(100),
+  })
+  .refine((v) => Boolean(v.userId) || Boolean(v.name && v.name.trim().length > 0), {
+    message: 'Please choose your name',
+    path: ['name'],
+  });
 
 export type RotaSignupPayload = z.infer<typeof rotaSignupSchema>;
 export type RotaRolePayload = z.infer<typeof rotaRoleSchema>;
