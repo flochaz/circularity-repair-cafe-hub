@@ -25,6 +25,7 @@ import m0003 from './migrations/0003_qwa_analytics.js';
 import m0004 from './migrations/0004_checkin_weight_first_visit.js';
 import m0005 from './migrations/0005_exit_satisfaction.js';
 import m0006 from './migrations/0006_session_card_number.js';
+import m0007 from './migrations/0007_volunteer_rota.js';
 
 const MIGRATIONS: Array<{ id: string; sql: string }> = [
   { id: '0001_init', sql: m0001 },
@@ -33,6 +34,7 @@ const MIGRATIONS: Array<{ id: string; sql: string }> = [
   { id: '0004_checkin_weight_first_visit', sql: m0004 },
   { id: '0005_exit_satisfaction', sql: m0005 },
   { id: '0006_session_card_number', sql: m0006 },
+  { id: '0007_volunteer_rota', sql: m0007 },
 ];
 
 /** Split a migration into statements. Our SQL never puts ";" inside a string. */

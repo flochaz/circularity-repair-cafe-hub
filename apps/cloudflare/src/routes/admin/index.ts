@@ -1,5 +1,6 @@
 import type { App } from '../../lib/router.js';
 import { adminEventsRoutes } from './events.js';
+import { adminRotaRoutes } from '../rota.js';
 import { adminVenuesRoutes } from './venues.js';
 import { adminSkillsRoutes } from './skills.js';
 import { adminUsersRoutes } from './users.js';
@@ -18,6 +19,7 @@ export async function adminRoutes(app: App): Promise<void> {
   app.addHook('preHandler', app.requireRole('super_admin', 'admin'));
   await app.register(adminDashboardRoutes);
   await app.register(adminEventsRoutes);
+  await app.register(adminRotaRoutes);
   await app.register(adminVenuesRoutes);
   await app.register(adminSkillsRoutes);
   await app.register(adminUsersRoutes);

@@ -382,3 +382,37 @@ export const cafeSettingsSchema = z.object({
   // URL or just the slug; the server reduces it to a slug before saving.
   repaircafeSlug: z.string().max(300).optional().nullable().or(z.literal('')),
 });
+
+// ─────────────────────────── Volunteer sign-up board ───────────────────────────
+// A per-session rota, like the Framadate poll a cafe often uses: the columns are
+// roles or tasks, and each volunteer answers yes / if needed / no. One open link
+// per session lets people answer with no account.
+// See apps/cloudflare/src/db/migrations/0007_volunteer_rota.ts.
+
+export const ROTA_CHOICES = ['yes', 'if_needed', 'no'] as const;
+export const rotaChoiceSchema = z.enum(ROTA_CHOICES);
+
+export const rotaRoleSchema = z.object({
+  label: z.string().min(1, 'Give the role a name').max(80),
+  capacity: z.number().int().min(0).max(99).optional().nullable(),
+  sortOrder: z.number().int().min(0).max(999).optional(),
+});
+
+export const rotaRoleUpdateSchema = rotaRoleSchema.partial();
+
+/** One person's answers, submitted through the open link. */
+export const rotaSignupSchema = z.object({
+  name: z.string().min(1, 'Please add your name').max(80),
+  comment: z.string().max(500).optional().nullable(),
+  choices: z
+    .array(
+      z.object({
+        roleId: z.string().uuid(),
+        choice: rotaChoiceSchema,
+      }),
+    )
+    .max(100),
+});
+
+export type RotaSignupPayload = z.infer<typeof rotaSignupSchema>;
+export type RotaRolePayload = z.infer<typeof rotaRoleSchema>;

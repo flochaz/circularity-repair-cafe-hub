@@ -458,4 +458,33 @@ export const fr: Record<string, string> = {
   fixed: 'réparés',
   'of CO₂ saved': 'de CO₂ évité',
   'Every repair keeps something out of the bin': 'Chaque réparation évite un déchet',
+
+  // ── Volunteer sign-up (the open link answered with no account) ─────
+  'Sign up': 'Inscription',
+  'Who is coming?': 'Qui vient ?',
+  'This sign-up is closed. You can still see who answered below.':
+    'Les inscriptions sont fermées. Vous pouvez encore voir qui a répondu ci-dessous.',
+  'Your answer': 'Votre réponse',
+  'Your name': 'Votre nom',
+  '{n} needed': '{n} personnes',
+  Yes: 'Oui',
+  'If needed': 'Si besoin',
+  No: 'Non',
+  'Save my answer': 'Enregistrer ma réponse',
+  'Update my answer': 'Modifier ma réponse',
+  'Remove my answer': 'Supprimer ma réponse',
+  'Saved.': 'Enregistré.',
+  'Your answer is kept on this device, so you can come back and change it.':
+    'Votre réponse est conservée sur cet appareil : vous pouvez revenir la modifier.',
+  'The organiser has not set up any roles yet.': 'L’organisateur n’a pas encore défini de rôle.',
+  'Who answered': 'Qui a répondu',
+  yes: 'oui',
+  'if needed': 'si besoin',
+  Comments: 'Commentaires',
+  'Copy this link': 'Copier ce lien',
+  'Link copied': 'Lien copié',
+  'Please add your name': 'Merci d’indiquer votre nom',
+  'Could not load this sign-up': 'Impossible de charger cette inscription',
+  'Could not save your answer': 'Impossible d’enregistrer votre réponse',
+  'Could not remove your answer': 'Impossible de supprimer votre réponse',
 };

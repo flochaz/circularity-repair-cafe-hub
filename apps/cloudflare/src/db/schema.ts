@@ -107,6 +107,8 @@ export const REPAIR_STATUSES = [
 export const SATISFACTION_VALUES = ['satisfied', 'not_satisfied'] as const;
 export const EVENT_STATUSES = ['scheduled', 'active', 'completed', 'cancelled'] as const;
 export const IMAGE_STAGES = ['check_in', 'during_repair', 'completed'] as const;
+/** How a volunteer answered the sign-up board for one role. */
+export const ROTA_CHOICES = ['yes', 'if_needed', 'no'] as const;
 
 // ── Tables ───────────────────────────────────────────────────────────────────
 
@@ -300,6 +302,10 @@ export const events = sqliteTable(
     notes: text('notes'),
     qrCodeUrl: text('qr_code_url'),
     checkInToken: text('check_in_token').unique(),
+    /** The open link volunteers use to sign up for this session. Null until the board is opened. */
+    signupToken: text('signup_token').unique(),
+    /** Whether the volunteer sign-up board is still taking answers. */
+    signupOpen: bool('signup_open').notNull().default(false),
     maxItems: integer('max_items'),
     createdBy: uuid('created_by').references(() => users.id),
     createdAt: timestamp('created_at').notNull().$defaultFn(() => new Date()),
@@ -308,6 +314,7 @@ export const events = sqliteTable(
   (t) => [
     index('idx_events_date').on(t.date),
     index('idx_events_check_in_token').on(t.checkInToken),
+    index('idx_events_signup_token').on(t.signupToken),
     index('idx_events_status').on(t.status),
   ],
 );
@@ -325,6 +332,65 @@ export const repairerEvents = sqliteTable(
     confirmed: bool('confirmed').notNull().default(false),
   },
   (t) => [unique('repairer_events_event_user').on(t.eventId, t.userId)],
+);
+
+// ── The volunteer sign-up board for a session ────────────────────────────────
+// Columns are roles ("Réparation", "Table d'accueil", …) and each volunteer
+// answers yes / if needed / no for each. See migrations/0007_volunteer_rota.ts.
+
+export const eventRoles = sqliteTable(
+  'event_roles',
+  {
+    id: uuid('id').primaryKey().$defaultFn(newId),
+    eventId: uuid('event_id')
+      .notNull()
+      .references(() => events.id, { onDelete: 'cascade' }),
+    label: text('label').notNull(),
+    /** How many helpers the role wants, or null for "as many as turn up". */
+    capacity: integer('capacity'),
+    sortOrder: integer('sort_order').notNull().default(0),
+    createdAt: timestamp('created_at').notNull().$defaultFn(() => new Date()),
+    updatedAt: timestamp('updated_at').notNull().$defaultFn(() => new Date()),
+  },
+  (t) => [index('idx_event_roles_event').on(t.eventId)],
+);
+
+export const eventSignups = sqliteTable(
+  'event_signups',
+  {
+    id: uuid('id').primaryKey().$defaultFn(newId),
+    eventId: uuid('event_id')
+      .notNull()
+      .references(() => events.id, { onDelete: 'cascade' }),
+    /** Set when a signed-in volunteer answers; null for an open-link answer. */
+    userId: uuid('user_id').references(() => users.id),
+    name: text('name').notNull(),
+    comment: text('comment'),
+    /** Private token so the person can change their own answer, with no account. */
+    token: text('token').notNull().unique(),
+    createdAt: timestamp('created_at').notNull().$defaultFn(() => new Date()),
+    updatedAt: timestamp('updated_at').notNull().$defaultFn(() => new Date()),
+  },
+  (t) => [index('idx_event_signups_event').on(t.eventId)],
+);
+
+export const eventSignupChoices = sqliteTable(
+  'event_signup_choices',
+  {
+    id: uuid('id').primaryKey().$defaultFn(newId),
+    signupId: uuid('signup_id')
+      .notNull()
+      .references(() => eventSignups.id, { onDelete: 'cascade' }),
+    roleId: uuid('role_id')
+      .notNull()
+      .references(() => eventRoles.id, { onDelete: 'cascade' }),
+    choice: text('choice', { enum: ROTA_CHOICES }).notNull(),
+  },
+  (t) => [
+    unique('event_signup_choices_signup_role').on(t.signupId, t.roleId),
+    index('idx_event_signup_choices_signup').on(t.signupId),
+    index('idx_event_signup_choices_role').on(t.roleId),
+  ],
 );
 
 export const repairJobs = sqliteTable(

@@ -3,7 +3,7 @@
   import { onMount } from 'svelte';
   import { api } from '$lib/api';
   import { goto } from '$app/navigation';
-  import { Printer, Download, RotateCw, Copy, Images, Trash2 } from 'lucide-svelte';
+  import { Printer, Download, RotateCw, Copy, Images, Trash2, Users } from 'lucide-svelte';
   // Aliased: this page already has its own `cafe` holding the admin settings.
   import { cafe as cafeProfile } from '$lib/stores/cafe';
 
@@ -146,6 +146,7 @@
       <a class="btn-secondary" href={`/admin/events/${id}/gallery`}>
         <Images size={16} /> Photos{#if photoCounts && photoCounts.total > 0}<span class="font-normal text-slate-500"> ({photoCounts.total})</span>{/if}
       </a>
+      <a class="btn-secondary" href={`/admin/events/${id}/rota`}><Users size={16} /> Sign-up</a>
       <button class="btn-secondary" on:click={clone}><Copy size={16} /> Clone</button>
       <!-- Quiet, not a solid red button: deleting a session is rare and should
            not sit here looking like the obvious next step. -->
