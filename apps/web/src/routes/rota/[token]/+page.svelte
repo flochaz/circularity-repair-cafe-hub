@@ -3,12 +3,12 @@
   // types their name, and answers yes / if needed / no for each role. No account
   // is needed; their answer is remembered on their own device so they can change
   // it later, the way Framadate does.
-  import { onMount } from 'svelte';
+  import { onMount, onDestroy } from 'svelte';
+  import { browser } from '$app/environment';
   import { page } from '$app/stores';
   import { api } from '$lib/api';
   import { auth } from '$lib/stores/auth';
-  import { locale } from '$lib/i18n';
-  import { t, tNow } from '$lib/i18n';
+  import { locale, t, tNow, setLocale, currentLocale, type Locale } from '$lib/i18n';
   import { Check, HelpCircle, Loader2, Trash2, Copy } from 'lucide-svelte';
 
   type Choice = 'yes' | 'if_needed' | 'no';
@@ -84,11 +84,30 @@
         selectedUserId = $auth.user.id;
       }
     } catch (err) {
-      loadError = (err as Error)?.message || tNow('Could not load this sign-up');
+      loadError = failure(err, 'Could not load this sign-up');
     }
   }
 
-  onMount(load);
+  // This page is for the café's French-speaking volunteers, so it is always
+  // French whatever the browser language. The rest of the hub keeps following
+  // the language setting.
+  let previousLocale: Locale | null = null;
+  let previousLang = 'en';
+
+  onMount(() => {
+    previousLocale = currentLocale();
+    previousLang = document.documentElement.lang || 'en';
+    setLocale('fr');
+    document.documentElement.lang = 'fr';
+    load();
+  });
+
+  onDestroy(() => {
+    // onDestroy also runs during server rendering, where there is no document.
+    if (!browser) return;
+    if (previousLocale) setLocale(previousLocale);
+    document.documentElement.lang = previousLang;
+  });
 
   function setChoice(roleId: string, choice: Choice): void {
     myChoices = myChoices[roleId] === choice ? omit(myChoices, roleId) : { ...myChoices, [roleId]: choice };
@@ -138,7 +157,7 @@
       }
       saved = true;
     } catch (err) {
-      error = (err as Error)?.message || tNow('Could not save your answer');
+      error = failure(err, 'Could not save your answer');
     } finally {
       busy = false;
     }
@@ -156,7 +175,7 @@
       myChoices = {};
       comment = '';
     } catch (err) {
-      error = (err as Error)?.message || tNow('Could not remove your answer');
+      error = failure(err, 'Could not remove your answer');
     } finally {
       busy = false;
     }
@@ -184,6 +203,25 @@
 
   function shortTime(time: string): string {
     return time.slice(0, 5);
+  }
+
+  /** A French message for a failed request, whichever layer refused it. */
+  function failure(err: unknown, fallback: string): string {
+    const e = err as { code?: string; message?: string };
+    switch (e?.code) {
+      case 'rota/closed':
+        return tNow('This sign-up is closed.');
+      case 'rota/unknown_volunteer':
+        return tNow('That volunteer is not in the hub.');
+      case 'rota/signup_not_found':
+        return tNow('Your answer was not found.');
+      case 'rota/not_found':
+        return tNow('This sign-up does not exist.');
+      case 'validation/failed':
+        return tNow('Please check your answer.');
+      default:
+        return tNow(e?.message || fallback);
+    }
   }
 
   /** How one cell reads in the table, with its colour. */

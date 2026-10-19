@@ -494,4 +494,9 @@ export const fr: Record<string, string> = {
   'Could not load this sign-up': 'Impossible de charger cette inscription',
   'Could not save your answer': 'Impossible d’enregistrer votre réponse',
   'Could not remove your answer': 'Impossible de supprimer votre réponse',
+  'This sign-up is closed.': 'Les inscriptions sont fermées.',
+  'That volunteer is not in the hub.': 'Ce bénévole n’est pas dans le hub.',
+  'Your answer was not found.': 'Votre réponse n’a pas été trouvée.',
+  'This sign-up does not exist.': 'Cette inscription n’existe pas.',
+  'Please check your answer.': 'Vérifiez votre réponse.',
 };
