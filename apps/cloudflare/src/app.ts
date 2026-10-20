@@ -17,6 +17,7 @@ import { ogRoutes } from './routes/og.js';
 import { checkInRoutes } from './routes/checkin.js';
 import { rotaRoutes } from './routes/rota.js';
 import { repairerRoutes } from './routes/repairer.js';
+import { preRegistrationPublicRoutes, preRegistrationStaffRoutes } from './routes/preRegistration.js';
 import { eventGalleryRoutes } from './routes/eventGallery.js';
 import { adminRoutes } from './routes/admin/index.js';
 import { displayRoutes } from './routes/display.js';
@@ -41,7 +42,9 @@ const registered = (async () => {
   await app.register(ogRoutes);
   await app.register(checkInRoutes);
   await app.register(rotaRoutes);
+  await app.register(preRegistrationPublicRoutes);
   await app.register(repairerRoutes);
+  await app.register(preRegistrationStaffRoutes);
   await app.register(eventGalleryRoutes);
   await app.register(displayRoutes);
   await app.register(demoRoutes);

@@ -2,10 +2,39 @@
 
 Notable changes to the Repair Café Hub. Newest first.
 
-## Unreleased
+## 1.12.1 (15 October 2026)
+
+### Fixed
+
+- **A security fix. Please update.** A repair's page sent the whole account
+  record of the repairer working on it, including their password hash. Any
+  signed-in volunteer could see another volunteer's hash. The admin pages for
+  a single user did the same. They now send only what the page shows, such
+  as the name and photo, and never the hash. A password hash cannot be used
+  to sign in. But someone could try to guess a weak password from it, so
+  volunteers with a short or common password should change it.
+- The demo seeder's log now counts only the pre-registered items a repairer
+  actually took.
+
+## 1.12.0 (15 October 2026)
 
 ### Added
 
+- **PAT testing.** A new switch under Settings, Check-in & preferences. When
+  it is on, electrical items have a "PAT test needed" label, and a repairer
+  must record a PAT result (passed, failed or not needed) before marking one
+  as fixed. The hub saves the result, the time and who recorded it. An item
+  that failed cannot be marked as fixed. Admins choose which categories are
+  electrical on the Skills page, and a repairer can change it for one item.
+  Electronics and Small appliances start as electrical. Off by default.
+- **Pre-registration.** A new switch under Settings, Check-in & preferences.
+  When it is on, visitors can pre-register an item from a session's page.
+  Repairers see the items under "Pre-registered items", and can take one and
+  write notes before the day. The item becomes a repair only when it is
+  checked in at the session, by the visitor scanning the QR code or by a
+  volunteer, and the repair time starts then. An item a repairer took goes
+  straight to them. Visitors can cancel an item from their tracking page.
+  Off by default.
 - **Quick Web Analytics (QWA).** Under Settings, SEO & analytics, you can now
   choose None, Plausible or Quick Web Analytics. Only one runs at a time.
   Plausible works exactly as before, and a hub that already uses it stays on
@@ -22,6 +51,10 @@ Notable changes to the Repair Café Hub. Newest first.
   before a page view is counted.
 - The demo seeder can turn on QWA for the demo site. Set `DEMO_QWA_SITE` and
   `DEMO_QWA_SRC` as Actions variables. See `docs/demo.md`.
+- The demo site now shows PAT testing and pre-registration. The seeder turns
+  both on, records PAT results on fixed electrical items, and pre-registers
+  items for today's session and the next one. Some are taken by a repairer,
+  with notes.
 
 ### Changed
 

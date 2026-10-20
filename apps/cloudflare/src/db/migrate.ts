@@ -26,6 +26,7 @@ import m0004 from './migrations/0004_checkin_weight_first_visit.js';
 import m0005 from './migrations/0005_exit_satisfaction.js';
 import m0006 from './migrations/0006_session_card_number.js';
 import m0007 from './migrations/0007_volunteer_rota.js';
+import m0008 from './migrations/0008_pat_and_preregistration.js';
 
 const MIGRATIONS: Array<{ id: string; sql: string }> = [
   { id: '0001_init', sql: m0001 },
@@ -35,6 +36,7 @@ const MIGRATIONS: Array<{ id: string; sql: string }> = [
   { id: '0005_exit_satisfaction', sql: m0005 },
   { id: '0006_session_card_number', sql: m0006 },
   { id: '0007_volunteer_rota', sql: m0007 },
+  { id: '0008_pat_and_preregistration', sql: m0008 },
 ];
 
 /** Split a migration into statements. Our SQL never puts ";" inside a string. */
@@ -134,8 +136,8 @@ export async function seed(db: D1Database, options: { force?: boolean } = {}): P
     DEFAULT_CATEGORIES.forEach((cat, order) => {
       statements.push(
         db
-          .prepare('INSERT INTO skill_categories (id, name, icon, colour, sort_order) VALUES (?, ?, ?, ?, ?)')
-          .bind(crypto.randomUUID(), cat.name, cat.icon, cat.colour, order),
+          .prepare('INSERT INTO skill_categories (id, name, icon, colour, sort_order, is_electrical) VALUES (?, ?, ?, ?, ?, ?)')
+          .bind(crypto.randomUUID(), cat.name, cat.icon, cat.colour, order, cat.isElectrical ? 1 : 0),
       );
     });
   }

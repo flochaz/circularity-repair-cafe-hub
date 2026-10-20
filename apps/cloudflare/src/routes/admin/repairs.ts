@@ -1,10 +1,13 @@
 import type { App } from '../../lib/router.js';
 import { db } from '../../db/index.js';
 import { addDaysIso, localMidnightMs, localToday } from '../../lib/dates.js';
-import { cafes, co2Factors, events, repairImages, repairJobs, skillCategories, users } from '../../db/schema.js';
+import { cafes, co2Factors, events, preRegistrations, repairImages, repairJobs, skillCategories, users } from '../../db/schema.js';
 import { and, asc, count, desc, eq, inArray, like, or, sql } from 'drizzle-orm';
-import { repairUpdateSchema } from '@circularity/shared';
+import { alias } from 'drizzle-orm/sqlite-core';
+import { needsPatTest, repairUpdateSchema } from '@circularity/shared';
+import { cafeFeatures } from '../../services/preRegistration.js';
 import { audit } from '../../utils/audit.js';
+import { repairerSummary } from '../../utils/users.js';
 import { deleteImage } from '../../services/imageUpload.js';
 import { env } from '../../env.js';
 
@@ -91,7 +94,7 @@ export async function adminRepairsRoutes(app: App): Promise<void> {
         job: repairJobs,
         category: skillCategories,
         event: events,
-        repairer: users,
+        repairer: repairerSummary,
       })
       .from(repairJobs)
       .leftJoin(skillCategories, eq(skillCategories.id, repairJobs.itemCategoryId))
@@ -107,7 +110,27 @@ export async function adminRepairsRoutes(app: App): Promise<void> {
       .select()
       .from(repairImages)
       .where(eq(repairImages.repairJobId, id));
-    return { ...rows[0], images };
+    const job = rows[0].job;
+    const features = await cafeFeatures();
+    let pat = null;
+    if (features.patTestingEnabled) {
+      const [tester] = job.patTestedBy
+        ? await db.select({ displayName: users.displayName }).from(users).where(eq(users.id, job.patTestedBy)).limit(1)
+        : [];
+      pat = {
+        needed: needsPatTest(true, job.isElectrical, rows[0].category?.isElectrical),
+        result: job.patResult,
+        testedAt: job.patTestedAt,
+        testedByName: tester?.displayName ?? null,
+        notes: job.patNotes,
+      };
+    }
+    const [pre] = await db
+      .select({ researchNotes: preRegistrations.researchNotes, createdAt: preRegistrations.createdAt })
+      .from(preRegistrations)
+      .where(eq(preRegistrations.repairJobId, id))
+      .limit(1);
+    return { ...rows[0], images, pat, preRegistration: pre ?? null };
   });
 
   app.patch('/api/admin/repairs/:id', async (request, reply) => {
@@ -190,6 +213,7 @@ export async function adminRepairsRoutes(app: App): Promise<void> {
 
   // CSV export
   app.get('/api/admin/repairs/export.csv', async (request, reply) => {
+    const patTester = alias(users, 'pat_tester');
     const rows = await db
       .select({
         jobNumber: repairJobs.jobNumber,
@@ -211,13 +235,20 @@ export async function adminRepairsRoutes(app: App): Promise<void> {
         environmentalSavingKg: repairJobs.environmentalSavingKg,
         createdAt: repairJobs.createdAt,
         completedAt: repairJobs.completedAt,
+        patResult: repairJobs.patResult,
+        patTestedAt: repairJobs.patTestedAt,
+        patTestedBy: patTester.displayName,
       })
       .from(repairJobs)
       .innerJoin(events, eq(events.id, repairJobs.eventId))
       .leftJoin(skillCategories, eq(skillCategories.id, repairJobs.itemCategoryId))
       .leftJoin(users, eq(users.id, repairJobs.repairerId))
+      .leftJoin(patTester, eq(patTester.id, repairJobs.patTestedBy))
       .orderBy(desc(repairJobs.createdAt));
     const headers = ['jobNumber', 'cardNumber', 'eventDate', 'eventName', 'customerName', 'itemDescription', 'category', 'brand', 'weightKg', 'isFirstVisit', 'fault', 'status', 'repairer', 'outcomeNotes', 'satisfaction', 'satisfactionComment', 'environmentalSavingKg', 'createdAt', 'completedAt'];
+    // The PAT columns only appear while the cafe does PAT tests, so the file
+    // is the same as before for everyone else.
+    if ((await cafeFeatures()).patTestingEnabled) headers.push('patResult', 'patTestedAt', 'patTestedBy');
     const lines = [headers.join(',')];
     for (const r of rows) {
       lines.push(headers.map((h) => escapeCsv((r as any)[h])).join(','));
@@ -332,16 +363,24 @@ export async function adminRepairsRoutes(app: App): Promise<void> {
       WHERE data_retention_date IS NOT NULL AND data_retention_date < ${today}
       AND (customer_name IS NOT NULL OR customer_contact IS NOT NULL)
     `);
+    // Items told to us before a session hold the same details, so they go too.
+    const preResult = await db.run(sql`
+      UPDATE pre_registrations SET customer_name = NULL, customer_contact = NULL, updated_at = ${now}
+      WHERE data_retention_date IS NOT NULL AND data_retention_date < ${today}
+      AND (customer_name IS NOT NULL OR customer_contact IS NOT NULL)
+    `);
     const repairs = result.meta?.changes ?? 0;
     const linuxInstalls = linuxResult.meta?.changes ?? 0;
+    const preRegistrations = preResult.meta?.changes ?? 0;
+    const rows = repairs + linuxInstalls + preRegistrations;
     await audit({
       request,
       actorId: me.sub,
       actorType: me.role,
       action: 'repair.pii_purged',
       entityType: 'system',
-      metadata: { rows: repairs + linuxInstalls, repairs, linuxInstalls },
+      metadata: { rows, repairs, linuxInstalls, preRegistrations },
     });
-    return { purged: repairs + linuxInstalls, repairs, linuxInstalls };
+    return { purged: rows, repairs, linuxInstalls, preRegistrations };
   });
 }
