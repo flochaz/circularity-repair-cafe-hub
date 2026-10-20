@@ -106,8 +106,13 @@ describe('the volunteer sign-up board', () => {
     expect(res.status).toBe(200);
     const added = res.body.signups.find((s: any) => s.userId === me.id);
     expect(added.name).toBe(me.name);
+    // A volunteer who says yes to a role is marked as attending the session.
+    const attending = await call(`/api/admin/events/${state.eventId}`, { token: state.admin });
+    expect(attending.body.attending.some((a: any) => a.userId === me.id)).toBe(true);
     // Tidy up so the rest of the flow sees exactly one answer.
     await call(`/api/rota/${state.token}/signups/${res.body.editToken}`, { method: 'DELETE' });
+    const after = await call(`/api/admin/events/${state.eventId}`, { token: state.admin });
+    expect(after.body.attending.some((a: any) => a.userId === me.id)).toBe(false);
 
     const stranger = await call(`/api/rota/${state.token}/signups`, {
       json: { userId: '00000000-0000-4000-8000-000000000000', choices: [] },

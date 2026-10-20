@@ -1,7 +1,7 @@
 import type { App } from '../lib/router.js';
 import { db, inList } from '../db/index.js';
-import { cafes, eventRoles, eventSignupChoices, eventSignups, events, users } from '../db/schema.js';
-import { asc, eq } from 'drizzle-orm';
+import { cafes, eventRoles, eventSignupChoices, eventSignups, events, repairerEvents, users } from '../db/schema.js';
+import { and, asc, eq } from 'drizzle-orm';
 import { rotaRoleSchema, rotaRoleUpdateSchema, rotaSignupSchema } from '@circularity/shared';
 import { randomToken } from '../utils/tokens.js';
 import { audit } from '../utils/audit.js';
@@ -163,6 +163,23 @@ async function replaceChoices(signupId: string, choices: Array<{ roleId: string;
   }
 }
 
+/**
+ * A volunteer who answers yes to at least one role is coming to that session,
+ * so they are marked in the event's "Attending repairers" list — the same
+ * repairer_events table the admin checkboxes use. If every answer moves away
+ * from yes, or the answer is deleted, the mark is removed again.
+ */
+async function syncAttendance(eventId: string, userId: string | null, choices: Array<{ choice: string }>) {
+  if (!userId) return;
+  if (choices.some((choice) => choice.choice === 'yes')) {
+    await db.insert(repairerEvents).values({ eventId, userId, confirmed: true }).onConflictDoNothing();
+  } else {
+    await db
+      .delete(repairerEvents)
+      .where(and(eq(repairerEvents.eventId, eventId), eq(repairerEvents.userId, userId)));
+  }
+}
+
 // ── The open link, answered with no account ─────────────────────────────────
 
 export async function rotaRoutes(app: App): Promise<void> {
@@ -211,6 +228,7 @@ export async function rotaRoutes(app: App): Promise<void> {
       })
       .returning();
     await replaceChoices(created!.id, choices);
+    await syncAttendance(event.id, respondent.userId, choices);
     const board = await loadBoard(event.id);
     return { signupId: created!.id, editToken, ...boardPayload(event, board) };
   });
@@ -235,6 +253,7 @@ export async function rotaRoutes(app: App): Promise<void> {
       reply.code(404).send({ error: 'Your answer was not found', code: 'rota/signup_not_found' });
       return;
     }
+    const previousUserId = signup.userId;
     const parsed = rotaSignupSchema.safeParse(request.body);
     if (!parsed.success) {
       reply.code(400).send({ error: 'Validation failed', code: 'validation/failed', details: parsed.error.flatten() });
@@ -256,6 +275,10 @@ export async function rotaRoutes(app: App): Promise<void> {
       })
       .where(eq(eventSignups.id, signup.id));
     await replaceChoices(signup.id, choices);
+    if (previousUserId && previousUserId !== respondent.userId) {
+      await syncAttendance(event.id, previousUserId, []);
+    }
+    await syncAttendance(event.id, respondent.userId, choices);
     const board = await loadBoard(event.id);
     return boardPayload(event, board);
   });
@@ -273,6 +296,7 @@ export async function rotaRoutes(app: App): Promise<void> {
       return;
     }
     await db.delete(eventSignups).where(eq(eventSignups.id, signup.id));
+    await syncAttendance(event.id, signup.userId, []);
     const board = await loadBoard(event.id);
     return boardPayload(event, board);
   });
