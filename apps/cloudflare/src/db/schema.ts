@@ -440,6 +440,11 @@ export const repairJobs = sqliteTable(
     co2SavingKg: numeric('co2_saving_kg', 3),
     co2SavingSource: text('co2_saving_source'),
     gdprConsent: bool('gdpr_consent').notNull().default(false),
+    /** Explicit, separate consent to receive the newsletter. Never pre-ticked. */
+    newsletterOptIn: bool('newsletter_opt_in').notNull().default(false),
+    /** The address to send it to. Separate from the free-text contact. */
+    newsletterEmail: text('newsletter_email'),
+    newsletterOptInAt: timestamp('newsletter_opt_in_at'),
     dataRetentionDate: date('data_retention_date'),
     /** Null means "the same as its category". Set when a repairer changes it. */
     isElectrical: bool('is_electrical'),
@@ -559,6 +564,11 @@ export const preRegistrations = sqliteTable(
     itemBrand: text('item_brand'),
     faultDescription: text('fault_description').notNull(),
     gdprConsent: bool('gdpr_consent').notNull().default(false),
+    /** Explicit, separate consent to receive the newsletter. Never pre-ticked. */
+    newsletterOptIn: bool('newsletter_opt_in').notNull().default(false),
+    /** The address to send it to. Separate from the free-text contact. */
+    newsletterEmail: text('newsletter_email'),
+    newsletterOptInAt: timestamp('newsletter_opt_in_at'),
     dataRetentionDate: date('data_retention_date'),
     status: text('status', { enum: PRE_REGISTRATION_STATUSES }).notNull().default('open'),
     /** The repairer who took it to look into before the day. */

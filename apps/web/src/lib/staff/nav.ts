@@ -22,6 +22,7 @@ import {
   History,
   Laptop,
   LayoutDashboard,
+  Mail,
   MapPin,
   MonitorPlay,
   Settings,
@@ -91,6 +92,7 @@ export function navFor(
         ...(options.linuxEnabled ? [{ href: '/admin/linux', label: 'Linux installs', icon: Laptop }] : []),
         { href: '/admin/repairers', label: 'Volunteers', icon: Users },
         { href: '/admin/stats', label: 'Statistics', icon: BarChart3 },
+        { href: '/admin/newsletter', label: 'Newsletter', icon: Mail },
       ],
     },
     {

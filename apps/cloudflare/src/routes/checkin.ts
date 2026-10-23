@@ -88,6 +88,8 @@ export async function checkInRoutes(app: App): Promise<void> {
     let customerName = data.customerName ?? null;
     let customerContact = data.customerContact ?? null;
     let gdprConsent = data.gdprConsent === true;
+    let newsletterOptIn = data.newsletterOptIn === true;
+    let newsletterEmail = data.newsletterEmail?.trim().toLowerCase() || null;
 
     if (customerToken) {
       const [existing] = await db
@@ -95,6 +97,8 @@ export async function checkInRoutes(app: App): Promise<void> {
           customerName: repairJobs.customerName,
           customerContact: repairJobs.customerContact,
           gdprConsent: repairJobs.gdprConsent,
+          newsletterOptIn: repairJobs.newsletterOptIn,
+          newsletterEmail: repairJobs.newsletterEmail,
         })
         .from(repairJobs)
         .where(and(eq(repairJobs.customerToken, customerToken), eq(repairJobs.eventId, found.event.id)))
@@ -115,11 +119,22 @@ export async function checkInRoutes(app: App): Promise<void> {
         customerName = existing.customerName;
         customerContact = existing.customerContact;
         gdprConsent = existing.gdprConsent;
+        // The newsletter choice is per item. Only inherit it when the caller
+        // sent no choice at all.
+        if (data.newsletterOptIn === undefined) {
+          newsletterOptIn = existing.newsletterOptIn;
+          newsletterEmail = existing.newsletterEmail;
+        } else if (newsletterOptIn && !newsletterEmail) {
+          newsletterEmail = existing.newsletterEmail;
+        }
       }
     } else {
       // New customer — mint a token they can use to track all their items.
       customerToken = randomToken(16);
     }
+
+    // Keep the address only when the visitor actually asked for the newsletter.
+    if (!newsletterOptIn) newsletterEmail = null;
 
     const [cafe] = await db.select({ dataRetentionDays: cafes.dataRetentionDays }).from(cafes).limit(1);
     const retentionDays = cafe?.dataRetentionDays ?? env.DATA_RETENTION_DEFAULT_DAYS;
@@ -166,6 +181,9 @@ export async function checkInRoutes(app: App): Promise<void> {
           cardNumber: data.cardNumber ?? null,
           faultDescription: data.faultDescription,
           gdprConsent,
+          newsletterOptIn,
+          newsletterEmail,
+          newsletterOptInAt: newsletterOptIn ? new Date() : null,
           dataRetentionDate: retentionDate.toISOString().slice(0, 10),
         })
         .returning(),

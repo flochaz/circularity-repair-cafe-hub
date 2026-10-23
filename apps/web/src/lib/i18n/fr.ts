@@ -24,6 +24,12 @@ export const fr: Record<string, string> = {
     'J’accepte que mes informations soient conservées pour cette session de réparation.',
   "We only keep your name and contact if you provide it. We don't share it with anyone.":
     'Nous ne conservons votre nom et vos coordonnées que si vous nous les fournissez. Nous ne les partageons avec personne.',
+  'I would like to receive the association newsletter (about once a month). I can unsubscribe at any time.':
+    'Je souhaite recevoir la newsletter de l’association (environ une fois par mois). Je peux me désinscrire à tout moment.',
+  'Email for the newsletter': 'E-mail pour la newsletter',
+  'The customer asked to receive the association newsletter (about once a month). They can unsubscribe at any time.':
+    'Le client a demandé à recevoir la newsletter de l’association (environ une fois par mois). Il peut se désinscrire à tout moment.',
+  'Please add an email for the newsletter': 'Merci d’indiquer un e-mail pour la newsletter',
   Back: 'Retour',
   Next: 'Suivant',
   'Tell us about your next item': 'Parlez-nous de votre prochain objet',

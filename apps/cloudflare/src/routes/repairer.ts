@@ -232,6 +232,9 @@ export async function repairerRoutes(app: App): Promise<void> {
     // Only record consent when we are actually storing something personal.
     const hasPii = Boolean(customerName) || Boolean(customerContact);
     const gdprConsent = hasPii ? data.gdprConsent === true : false;
+    // Newsletter consent is separate from consent to store the repair.
+    const newsletterOptIn = data.newsletterOptIn === true;
+    const newsletterEmail = newsletterOptIn ? data.newsletterEmail?.trim().toLowerCase() || null : null;
     // Mint a tracking token like the public flow so the item still has a stable
     // tracker, even though a device-less customer will rely on the job number.
     const customerToken = randomToken(16);
@@ -280,6 +283,9 @@ export async function repairerRoutes(app: App): Promise<void> {
           cardNumber: data.cardNumber ?? null,
           faultDescription: data.faultDescription,
           gdprConsent,
+          newsletterOptIn,
+          newsletterEmail,
+          newsletterOptInAt: newsletterOptIn ? new Date() : null,
           dataRetentionDate: retentionDate.toISOString().slice(0, 10),
         })
         .returning(),

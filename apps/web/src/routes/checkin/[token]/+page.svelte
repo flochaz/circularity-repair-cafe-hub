@@ -41,6 +41,10 @@
   let customerName = '';
   let customerContact = '';
   let gdpr = false;
+  // Newsletter consent is separate from consent to store the repair. It is never
+  // pre-ticked, and only the address given for it is kept.
+  let newsletterOptIn = false;
+  let newsletterEmail = '';
   let itemDescription = '';
   let faultDescription = '';
   let itemBrand = '';
@@ -271,6 +275,8 @@
         payload.customerName = customerName.trim();
         payload.customerContact = customerContact.trim() || null;
         payload.gdprConsent = true;
+        payload.newsletterOptIn = newsletterOptIn;
+        payload.newsletterEmail = newsletterOptIn ? newsletterEmail.trim() || null : null;
       }
       const job = await api<{ id: string; jobNumber: string; status: string; customerToken: string }>(
         `/api/checkin/${token}/jobs`,
@@ -342,6 +348,8 @@
     customerName = '';
     customerContact = '';
     gdpr = false;
+    newsletterOptIn = false;
+    newsletterEmail = '';
     itemDescription = '';
     faultDescription = '';
     itemBrand = '';
@@ -497,6 +505,21 @@
               <span class="text-base">{$t("I'm happy for my details to be stored for this repair session.")}</span>
             </label>
             <p class="text-sm text-slate-500">{$t("We only keep your name and contact if you provide it. We don't share it with anyone.")}</p>
+            <div class="rounded-xl border border-slate-200 p-4">
+              <label class="flex items-start gap-3 cursor-pointer">
+                <input type="checkbox" class="h-6 w-6 rounded border-slate-300 text-brand-600 mt-0.5" bind:checked={newsletterOptIn} />
+                <span class="text-base">{$t('I would like to receive the association newsletter (about once a month). I can unsubscribe at any time.')}</span>
+              </label>
+              {#if newsletterOptIn}
+                <input
+                  class="input text-lg py-4 mt-3"
+                  type="email"
+                  autocomplete="email"
+                  placeholder={$t('Email for the newsletter')}
+                  bind:value={newsletterEmail}
+                />
+              {/if}
+            </div>
           </div>
           {#if error}<p class="mt-4 text-sm text-rose-600">{error}</p>{/if}
           <div class="mt-8 flex justify-between">

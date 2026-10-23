@@ -14,6 +14,7 @@ import { adminBackupRoutes } from './backup.js';
 import { adminTelemetryRoutes } from './telemetry.js';
 import { adminUpdatesRoutes } from './updates.js';
 import { adminLinuxRoutes } from './linux.js';
+import { adminNewsletterRoutes } from './newsletter.js';
 
 export async function adminRoutes(app: App): Promise<void> {
   app.addHook('preHandler', app.requireRole('super_admin', 'admin'));
@@ -32,4 +33,5 @@ export async function adminRoutes(app: App): Promise<void> {
   await app.register(adminTelemetryRoutes);
   await app.register(adminUpdatesRoutes);
   await app.register(adminLinuxRoutes);
+  await app.register(adminNewsletterRoutes);
 }

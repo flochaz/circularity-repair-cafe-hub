@@ -354,9 +354,9 @@ export async function adminRepairsRoutes(app: App): Promise<void> {
     const today = localToday();
     const now = Date.now();
     const result = await db.run(sql`
-      UPDATE repair_jobs SET customer_name = NULL, customer_contact = NULL, updated_at = ${now}
+      UPDATE repair_jobs SET customer_name = NULL, customer_contact = NULL, newsletter_email = NULL, updated_at = ${now}
       WHERE data_retention_date IS NOT NULL AND data_retention_date < ${today}
-      AND (customer_name IS NOT NULL OR customer_contact IS NOT NULL)
+      AND (customer_name IS NOT NULL OR customer_contact IS NOT NULL OR newsletter_email IS NOT NULL)
     `);
     const linuxResult = await db.run(sql`
       UPDATE linux_installs SET customer_name = NULL, customer_contact = NULL, updated_at = ${now}
@@ -365,9 +365,9 @@ export async function adminRepairsRoutes(app: App): Promise<void> {
     `);
     // Items told to us before a session hold the same details, so they go too.
     const preResult = await db.run(sql`
-      UPDATE pre_registrations SET customer_name = NULL, customer_contact = NULL, updated_at = ${now}
+      UPDATE pre_registrations SET customer_name = NULL, customer_contact = NULL, newsletter_email = NULL, updated_at = ${now}
       WHERE data_retention_date IS NOT NULL AND data_retention_date < ${today}
-      AND (customer_name IS NOT NULL OR customer_contact IS NOT NULL)
+      AND (customer_name IS NOT NULL OR customer_contact IS NOT NULL OR newsletter_email IS NOT NULL)
     `);
     const repairs = result.meta?.changes ?? 0;
     const linuxInstalls = linuxResult.meta?.changes ?? 0;

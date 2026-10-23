@@ -96,6 +96,10 @@ export const checkInSubmitSchema = z
     customerName: z.string().min(1).max(50).optional(),
     customerContact: z.string().max(100).optional().nullable(),
     gdprConsent: z.boolean().optional(),
+    // Marketing consent is separate from the consent to store the repair, and
+    // is never assumed. An email is required when it is given.
+    newsletterOptIn: z.boolean().optional(),
+    newsletterEmail: z.string().email().max(200).optional().nullable(),
     // When set, server reuses the customer details from existing jobs with this token
     // (the customer is adding another item from the same device/session).
     customerToken: z.string().min(8).max(64).optional(),
@@ -121,7 +125,11 @@ export const checkInSubmitSchema = z
       message: 'Provide your name and consent, or a returning customer token',
       path: ['customerName'],
     },
-  );
+  )
+  .refine((v) => v.newsletterOptIn !== true || Boolean(v.newsletterEmail), {
+    message: 'Add an email address for the newsletter',
+    path: ['newsletterEmail'],
+  });
 
 export type CheckInSubmitPayload = z.infer<typeof checkInSubmitSchema>;
 
@@ -133,6 +141,10 @@ export const assistedCheckInSchema = z
     customerName: z.string().max(50).optional().nullable(),
     customerContact: z.string().max(100).optional().nullable(),
     gdprConsent: z.boolean().optional(),
+    // Marketing consent is separate from the consent to store the repair, and
+    // is never assumed. An email is required when it is given.
+    newsletterOptIn: z.boolean().optional(),
+    newsletterEmail: z.string().email().max(200).optional().nullable(),
     itemDescription: z.string().min(1).max(200),
     faultDescription: z.string().min(1).max(500),
     itemCategoryId: z.string().uuid().optional().nullable(),
@@ -157,7 +169,11 @@ export const assistedCheckInSchema = z
       message: 'Please confirm the customer is happy for their details to be stored',
       path: ['gdprConsent'],
     },
-  );
+  )
+  .refine((v) => v.newsletterOptIn !== true || Boolean(v.newsletterEmail), {
+    message: 'Add an email address for the newsletter',
+    path: ['newsletterEmail'],
+  });
 
 export type AssistedCheckInPayload = z.infer<typeof assistedCheckInSchema>;
 

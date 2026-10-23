@@ -29,6 +29,9 @@
   let customerName = '';
   let customerContact = '';
   let consent = false;
+  // Newsletter consent is separate from the consent to store the repair.
+  let newsletterOptIn = false;
+  let newsletterEmail = '';
 
   // Optional item photo, captured in-page and held until the job exists.
   let photoBlob: Blob | null = null;
@@ -153,6 +156,9 @@
     if (hasPii && !consent) {
       return (error = tNow('Please confirm the customer is happy for their details to be stored'));
     }
+    if (newsletterOptIn && !newsletterEmail.trim()) {
+      return (error = tNow('Please add an email for the newsletter'));
+    }
     busy = true;
     try {
       const payload: Record<string, unknown> = {
@@ -166,6 +172,8 @@
         customerName: customerName.trim() || null,
         customerContact: customerContact.trim() || null,
         gdprConsent: hasPii ? consent : false,
+        newsletterOptIn,
+        newsletterEmail: newsletterOptIn ? newsletterEmail.trim() || null : null,
       };
       const res = await api<{ id: string; jobNumber: string }>('/api/repairer/checkin', { method: 'POST', json: payload });
       // Photo is optional and must attach to the created job, so upload after.
@@ -200,6 +208,8 @@
     customerName = '';
     customerContact = '';
     consent = false;
+    newsletterOptIn = false;
+    newsletterEmail = '';
     removePhoto();
     photoWarning = '';
     error = '';
@@ -386,6 +396,23 @@
             <span class="text-sm text-slate-700">{$t("I've asked, and the customer is happy for their details to be stored for this repair.")}</span>
           </label>
         {/if}
+        <div class="mt-4 rounded-xl border border-slate-200 p-4">
+          <label class="flex items-start gap-3 cursor-pointer">
+            <input type="checkbox" class="h-5 w-5 rounded border-slate-300 text-brand-600 mt-0.5" bind:checked={newsletterOptIn} />
+            <span class="text-sm text-slate-700">
+              {$t('The customer asked to receive the association newsletter (about once a month). They can unsubscribe at any time.')}
+            </span>
+          </label>
+          {#if newsletterOptIn}
+            <input
+              class="input mt-3"
+              type="email"
+              autocomplete="off"
+              placeholder={$t('Email for the newsletter')}
+              bind:value={newsletterEmail}
+            />
+          {/if}
+        </div>
       </fieldset>
 
       {#if error}<p class="text-sm text-rose-600">{error}</p>{/if}

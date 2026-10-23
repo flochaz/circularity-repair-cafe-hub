@@ -33,6 +33,9 @@
   let customerName = '';
   let customerContact = '';
   let consent = false;
+  // Newsletter consent is separate from the consent to store the repair.
+  let newsletterOptIn = false;
+  let newsletterEmail = '';
   let itemCategoryId: string | null = null;
   let itemDescription = '';
   let itemBrand = '';
@@ -70,6 +73,9 @@
     }
     if (!itemDescription.trim()) return (error = 'Please describe your item');
     if (!faultDescription.trim()) return (error = 'Please tell us what is wrong with it');
+    if (newsletterOptIn && !newsletterEmail.trim()) {
+      return (error = 'Please add an email for the newsletter');
+    }
     busy = true;
     try {
       const payload: Record<string, unknown> = {
@@ -84,6 +90,8 @@
         payload.customerName = customerName.trim();
         payload.customerContact = customerContact.trim() || null;
         payload.gdprConsent = true;
+        payload.newsletterOptIn = newsletterOptIn;
+        payload.newsletterEmail = newsletterOptIn ? newsletterEmail.trim() || null : null;
       }
       const res = await api<{ id: string; customerToken: string }>(`/api/public/events/${eventId}/pre-register`, {
         method: 'POST',
@@ -115,6 +123,8 @@
     customerName = '';
     customerContact = '';
     consent = false;
+    newsletterOptIn = false;
+    newsletterEmail = '';
   }
 
   async function copyLink() {
@@ -225,6 +235,15 @@
                 <input type="checkbox" class="h-5 w-5 rounded border-slate-300 text-brand-600 mt-0.5" bind:checked={consent} />
                 <span class="text-sm text-slate-700">I am happy for my details to be stored for this repair. We do not share them with anyone.</span>
               </label>
+              <div class="rounded-xl border border-slate-200 p-3">
+                <label class="flex items-start gap-3 cursor-pointer">
+                  <input type="checkbox" class="h-5 w-5 rounded border-slate-300 text-brand-600 mt-0.5" bind:checked={newsletterOptIn} />
+                  <span class="text-sm text-slate-700">I would like to receive the association newsletter (about once a month). I can unsubscribe at any time.</span>
+                </label>
+                {#if newsletterOptIn}
+                  <input class="input mt-3" type="email" autocomplete="email" placeholder="Email for the newsletter" bind:value={newsletterEmail} />
+                {/if}
+              </div>
             </fieldset>
           {/if}
 

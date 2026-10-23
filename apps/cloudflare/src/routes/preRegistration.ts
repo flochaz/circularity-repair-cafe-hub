@@ -97,12 +97,16 @@ export async function preRegistrationPublicRoutes(app: App): Promise<void> {
     let customerName = data.customerName ?? null;
     let customerContact = features.enableContactField ? data.customerContact?.trim() || null : null;
     let gdprConsent = data.gdprConsent === true;
+    let newsletterOptIn = data.newsletterOptIn === true;
+    let newsletterEmail = data.newsletterEmail?.trim().toLowerCase() || null;
     if (data.customerToken) {
       const mine = await db
         .select({
           customerName: preRegistrations.customerName,
           customerContact: preRegistrations.customerContact,
           gdprConsent: preRegistrations.gdprConsent,
+          newsletterOptIn: preRegistrations.newsletterOptIn,
+          newsletterEmail: preRegistrations.newsletterEmail,
           status: preRegistrations.status,
         })
         .from(preRegistrations)
@@ -120,6 +124,14 @@ export async function preRegistrationPublicRoutes(app: App): Promise<void> {
         customerName = known.customerName;
         customerContact = known.customerContact;
         gdprConsent = known.gdprConsent;
+        // The newsletter choice is per item. Only inherit it when the caller
+        // sent no choice at all.
+        if (data.newsletterOptIn === undefined) {
+          newsletterOptIn = known.newsletterOptIn;
+          newsletterEmail = known.newsletterEmail;
+        } else if (newsletterOptIn && !newsletterEmail) {
+          newsletterEmail = known.newsletterEmail;
+        }
       } else if (!customerName || !gdprConsent) {
         reply.code(400).send({
           error: 'We could not find your earlier items. Please enter your name again.',
@@ -129,6 +141,8 @@ export async function preRegistrationPublicRoutes(app: App): Promise<void> {
       }
     }
     customerToken ??= randomToken(16);
+    // Keep the address only when the visitor actually asked for the newsletter.
+    if (!newsletterOptIn) newsletterEmail = null;
 
     const [created] = await db
       .insert(preRegistrations)
@@ -143,6 +157,9 @@ export async function preRegistrationPublicRoutes(app: App): Promise<void> {
         itemBrand: data.itemBrand ?? null,
         faultDescription: data.faultDescription,
         gdprConsent,
+        newsletterOptIn,
+        newsletterEmail,
+        newsletterOptInAt: newsletterOptIn ? new Date() : null,
         dataRetentionDate: retentionDate(features.dataRetentionDays),
       })
       .returning();
