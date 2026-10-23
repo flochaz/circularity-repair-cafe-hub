@@ -417,6 +417,8 @@ export const repairJobs = sqliteTable(
     cardNumber: integer('card_number'),
     customerName: text('customer_name'),
     customerContact: text('customer_contact'),
+    /** The visitor's email, kept apart from the free-text phone. */
+    customerEmail: text('customer_email'),
     customerToken: text('customer_token'),
     /** Whether this is the visitor's first time at the cafe. Optional. */
     isFirstVisit: bool('is_first_visit'),
@@ -556,6 +558,8 @@ export const preRegistrations = sqliteTable(
       .references(() => events.id, { onDelete: 'cascade' }),
     customerName: text('customer_name'),
     customerContact: text('customer_contact'),
+    /** The visitor's email, kept apart from the free-text phone. */
+    customerEmail: text('customer_email'),
     /** The same token as the repairs it becomes, so one tracking link shows both. */
     customerToken: text('customer_token').notNull(),
     itemDescription: text('item_description').notNull(),

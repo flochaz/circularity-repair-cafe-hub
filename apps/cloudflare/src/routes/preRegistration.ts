@@ -96,6 +96,7 @@ export async function preRegistrationPublicRoutes(app: App): Promise<void> {
     let customerToken: string | null = null;
     let customerName = data.customerName ?? null;
     let customerContact = features.enableContactField ? data.customerContact?.trim() || null : null;
+    let customerEmail = features.enableContactField ? data.customerEmail?.trim().toLowerCase() || null : null;
     let gdprConsent = data.gdprConsent === true;
     let newsletterOptIn = data.newsletterOptIn === true;
     let newsletterEmail = data.newsletterEmail?.trim().toLowerCase() || null;
@@ -104,6 +105,7 @@ export async function preRegistrationPublicRoutes(app: App): Promise<void> {
         .select({
           customerName: preRegistrations.customerName,
           customerContact: preRegistrations.customerContact,
+          customerEmail: preRegistrations.customerEmail,
           gdprConsent: preRegistrations.gdprConsent,
           newsletterOptIn: preRegistrations.newsletterOptIn,
           newsletterEmail: preRegistrations.newsletterEmail,
@@ -123,6 +125,7 @@ export async function preRegistrationPublicRoutes(app: App): Promise<void> {
         customerToken = data.customerToken;
         customerName = known.customerName;
         customerContact = known.customerContact;
+        customerEmail = known.customerEmail;
         gdprConsent = known.gdprConsent;
         // The newsletter choice is per item. Only inherit it when the caller
         // sent no choice at all.
@@ -150,6 +153,7 @@ export async function preRegistrationPublicRoutes(app: App): Promise<void> {
         eventId: event.id,
         customerName,
         customerContact,
+        customerEmail,
         customerToken,
         itemDescription: data.itemDescription,
         itemCategoryId: data.itemCategoryId ?? null,

@@ -229,6 +229,7 @@ export async function repairerRoutes(app: App): Promise<void> {
 
     const customerName = data.customerName?.trim() || null;
     const customerContact = data.customerContact?.trim() || null;
+    const customerEmail = data.customerEmail?.trim().toLowerCase() || null;
     // Only record consent when we are actually storing something personal.
     const hasPii = Boolean(customerName) || Boolean(customerContact);
     const gdprConsent = hasPii ? data.gdprConsent === true : false;
@@ -271,6 +272,7 @@ export async function repairerRoutes(app: App): Promise<void> {
           jobNumber,
           customerName,
           customerContact,
+          customerEmail,
           customerToken,
           itemDescription: data.itemDescription,
           itemCategoryId: data.itemCategoryId ?? null,

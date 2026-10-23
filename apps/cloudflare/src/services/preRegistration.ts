@@ -109,6 +109,7 @@ export async function checkInPreRegistration(pre: PreRegistration, at: Date = ne
           jobNumber,
           customerName: pre.customerName,
           customerContact: pre.customerContact,
+          customerEmail: pre.customerEmail,
           customerToken: pre.customerToken,
           itemDescription: pre.itemDescription,
           itemCategoryId: pre.itemCategoryId,

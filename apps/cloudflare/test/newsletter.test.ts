@@ -42,10 +42,16 @@ function checkIn(extra: Record<string, unknown> = {}) {
 
 describe('newsletter opt-in', () => {
   it('stores consent and exports each opted-in address once', async () => {
-    expect((await checkIn({ newsletterOptIn: true, newsletterEmail: 'Visitor@Example.org' })).status).toBe(200);
+    expect((await checkIn({ customerEmail: 'Visitor@Example.org', newsletterOptIn: true, newsletterEmail: 'Visitor@Example.org' })).status).toBe(200);
     expect((await checkIn({ newsletterOptIn: false })).status).toBe(200);
     // The same person on another item: same address, stored in another case.
     expect((await checkIn({ newsletterOptIn: true, newsletterEmail: 'visitor@example.org' })).status).toBe(200);
+
+    // The visitor's own email is stored, lowercased, apart from the newsletter one.
+    const { env } = await import('cloudflare:workers');
+    const DB = (env as unknown as { DB: D1Database }).DB;
+    const stored = await DB.prepare("SELECT customer_email FROM repair_jobs WHERE customer_email IS NOT NULL LIMIT 1").first<{ customer_email: string }>();
+    expect(stored?.customer_email).toBe('visitor@example.org');
 
     const summary = await call('/api/admin/newsletter', { token: admin });
     expect(summary.status).toBe(200);

@@ -18,6 +18,12 @@ export const fr: Record<string, string> = {
   'Check in my item': 'Enregistrer mon objet',
   'First, a little about you': 'D’abord, parlons de vous',
   'Your first name': 'Votre prénom',
+  'Last name': 'Nom',
+  'Phone number': 'Téléphone',
+  'Email address': 'E-mail',
+  '(required)': '(obligatoire)',
+  'Please check the email address': 'Vérifiez l’adresse e-mail',
+  'Add your email above to receive the newsletter.': 'Indiquez votre e-mail ci-dessus pour recevoir la newsletter.',
   'Phone or email': 'Téléphone ou e-mail',
   '(only if you want us to contact you)': '(uniquement si vous souhaitez que nous vous contactions)',
   "I'm happy for my details to be stored for this repair session.":

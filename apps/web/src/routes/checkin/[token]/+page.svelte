@@ -39,12 +39,13 @@
   // Form state
   let step = 1;
   let customerName = '';
-  let customerContact = '';
+  let customerLastName = '';
+  let customerPhone = '';
+  let customerEmail = '';
   let gdpr = false;
   // Newsletter consent is separate from consent to store the repair. It is never
   // pre-ticked, and only the address given for it is kept.
   let newsletterOptIn = false;
-  let newsletterEmail = '';
   let itemDescription = '';
   let faultDescription = '';
   let itemBrand = '';
@@ -61,6 +62,15 @@
   let createdJob: { id: string; jobNumber: string } | null = null;
   let uploadedThumb: string | null = null;
   let uploadingPhoto = false;
+
+  /** A simple check: the newsletter box only works with a real-looking address. */
+  function isValidEmail(value: string): boolean {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
+  }
+
+  // Ticking the newsletter is only possible with an email. If the address is
+  // cleared or becomes invalid, the consent goes with it.
+  $: if (!isValidEmail(customerEmail)) newsletterOptIn = false;
 
   // Returning-customer state
   let savedCustomer: SavedCustomer | null = null;
@@ -177,8 +187,10 @@
       info = await api<CheckInData>(`/api/checkin/${token}`, { autoRefresh: false });
       savedCustomer = loadSavedCustomer(token);
       if (savedCustomer) {
-        customerName = savedCustomer.customerName;
-        customerContact = savedCustomer.customerContact ?? '';
+        const parts = savedCustomer.customerName.trim().split(/\s+/);
+        customerName = parts[0] ?? '';
+        customerLastName = parts.slice(1).join(' ');
+        customerPhone = savedCustomer.customerContact ?? '';
         customerToken = savedCustomer.customerToken;
         gdpr = true;
       }
@@ -218,6 +230,9 @@
     error = '';
     if (step === 2) {
       if (!customerName.trim()) return (error = tNow('Please enter your first name'));
+      if (customerEmail.trim() && !isValidEmail(customerEmail)) {
+        return (error = tNow('Please check the email address'));
+      }
       if (!gdpr) return (error = tNow('Please confirm we can store your details'));
       step = 3;
       return;
@@ -272,11 +287,15 @@
       if (customerToken) {
         payload.customerToken = customerToken;
       } else {
-        payload.customerName = customerName.trim();
-        payload.customerContact = customerContact.trim() || null;
+        payload.customerName = [customerName, customerLastName]
+          .map((part) => part.trim())
+          .filter(Boolean)
+          .join(' ');
+        payload.customerContact = customerPhone.trim() || null;
+        payload.customerEmail = customerEmail.trim() || null;
         payload.gdprConsent = true;
-        payload.newsletterOptIn = newsletterOptIn;
-        payload.newsletterEmail = newsletterOptIn ? newsletterEmail.trim() || null : null;
+        payload.newsletterOptIn = newsletterOptIn && isValidEmail(customerEmail);
+        payload.newsletterEmail = newsletterOptIn ? customerEmail.trim() : null;
       }
       const job = await api<{ id: string; jobNumber: string; status: string; customerToken: string }>(
         `/api/checkin/${token}/jobs`,
@@ -288,14 +307,20 @@
       // Persist so they can add more items + return to their tracker later.
       saveCustomer(token, {
         customerToken: job.customerToken,
-        customerName: customerName.trim(),
-        customerContact: customerContact.trim() || null,
+        customerName: [customerName, customerLastName]
+          .map((part) => part.trim())
+          .filter(Boolean)
+          .join(' '),
+        customerContact: customerPhone.trim() || null,
         savedAt: Date.now(),
       });
       savedCustomer = {
         customerToken: job.customerToken,
-        customerName: customerName.trim(),
-        customerContact: customerContact.trim() || null,
+        customerName: [customerName, customerLastName]
+          .map((part) => part.trim())
+          .filter(Boolean)
+          .join(' '),
+        customerContact: customerPhone.trim() || null,
         savedAt: Date.now(),
       };
       step = 4;
@@ -346,10 +371,11 @@
   function startFresh(): void {
     clearSavedCustomer(token);
     customerName = '';
-    customerContact = '';
+    customerLastName = '';
+    customerPhone = '';
+    customerEmail = '';
     gdpr = false;
     newsletterOptIn = false;
-    newsletterEmail = '';
     itemDescription = '';
     faultDescription = '';
     itemBrand = '';
@@ -491,13 +517,21 @@
           <h1 class="text-2xl font-bold">{$t('First, a little about you')}</h1>
           <div class="mt-6 space-y-5">
             <div>
-              <label class="label text-base" for="cn">{$t('Your first name')}</label>
+              <label class="label text-base" for="cn">{$t('First name')} <span class="font-normal text-slate-500">{$t('(required)')}</span></label>
               <input id="cn" class="input text-lg py-4" maxlength="50" bind:value={customerName} autocomplete="given-name" />
+            </div>
+            <div>
+              <label class="label text-base" for="cln">{$t('Last name')} <span class="font-normal text-slate-500">{$t('(optional)')}</span></label>
+              <input id="cln" class="input text-lg py-4" maxlength="50" bind:value={customerLastName} autocomplete="family-name" />
             </div>
             {#if info.cafe.enableContactField}
               <div>
-                <label class="label text-base" for="cc">{$t('Phone or email')} <span class="font-normal text-slate-500">{$t('(only if you want us to contact you)')}</span></label>
-                <input id="cc" class="input text-lg py-4" maxlength="100" bind:value={customerContact} />
+                <label class="label text-base" for="cp">{$t('Phone number')} <span class="font-normal text-slate-500">{$t('(optional)')}</span></label>
+                <input id="cp" class="input text-lg py-4" type="tel" maxlength="50" bind:value={customerPhone} autocomplete="tel" />
+              </div>
+              <div>
+                <label class="label text-base" for="ce">{$t('Email address')} <span class="font-normal text-slate-500">{$t('(optional)')}</span></label>
+                <input id="ce" class="input text-lg py-4" type="email" maxlength="200" bind:value={customerEmail} autocomplete="email" />
               </div>
             {/if}
             <label class="flex items-start gap-3 cursor-pointer">
@@ -505,21 +539,22 @@
               <span class="text-base">{$t("I'm happy for my details to be stored for this repair session.")}</span>
             </label>
             <p class="text-sm text-slate-500">{$t("We only keep your name and contact if you provide it. We don't share it with anyone.")}</p>
-            <div class="rounded-xl border border-slate-200 p-4">
-              <label class="flex items-start gap-3 cursor-pointer">
-                <input type="checkbox" class="h-6 w-6 rounded border-slate-300 text-brand-600 mt-0.5" bind:checked={newsletterOptIn} />
-                <span class="text-base">{$t('I would like to receive the association newsletter (about once a month). I can unsubscribe at any time.')}</span>
-              </label>
-              {#if newsletterOptIn}
-                <input
-                  class="input text-lg py-4 mt-3"
-                  type="email"
-                  autocomplete="email"
-                  placeholder={$t('Email for the newsletter')}
-                  bind:value={newsletterEmail}
-                />
-              {/if}
-            </div>
+            {#if info.cafe.enableContactField}
+              <div class="rounded-xl border border-slate-200 p-4">
+                <label class="flex items-start gap-3 cursor-pointer {isValidEmail(customerEmail) ? '' : 'opacity-60'}">
+                  <input
+                    type="checkbox"
+                    class="h-6 w-6 rounded border-slate-300 text-brand-600 mt-0.5"
+                    bind:checked={newsletterOptIn}
+                    disabled={!isValidEmail(customerEmail)}
+                  />
+                  <span class="text-base">{$t('I would like to receive the association newsletter (about once a month). I can unsubscribe at any time.')}</span>
+                </label>
+                {#if !isValidEmail(customerEmail)}
+                  <p class="mt-2 text-sm text-slate-500">{$t('Add your email above to receive the newsletter.')}</p>
+                {/if}
+              </div>
+            {/if}
           </div>
           {#if error}<p class="mt-4 text-sm text-rose-600">{error}</p>{/if}
           <div class="mt-8 flex justify-between">

@@ -95,6 +95,7 @@ export const checkInSubmitSchema = z
   .object({
     customerName: z.string().min(1).max(50).optional(),
     customerContact: z.string().max(100).optional().nullable(),
+    customerEmail: z.string().email().max(200).optional().nullable(),
     gdprConsent: z.boolean().optional(),
     // Marketing consent is separate from the consent to store the repair, and
     // is never assumed. An email is required when it is given.
@@ -140,6 +141,7 @@ export const assistedCheckInSchema = z
   .object({
     customerName: z.string().max(50).optional().nullable(),
     customerContact: z.string().max(100).optional().nullable(),
+    customerEmail: z.string().email().max(200).optional().nullable(),
     gdprConsent: z.boolean().optional(),
     // Marketing consent is separate from the consent to store the repair, and
     // is never assumed. An email is required when it is given.

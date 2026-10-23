@@ -28,6 +28,7 @@ import m0006 from './migrations/0006_session_card_number.js';
 import m0007 from './migrations/0007_volunteer_rota.js';
 import m0008 from './migrations/0008_pat_and_preregistration.js';
 import m0009 from './migrations/0009_newsletter_opt_in.js';
+import m0010 from './migrations/0010_customer_email.js';
 
 const MIGRATIONS: Array<{ id: string; sql: string }> = [
   { id: '0001_init', sql: m0001 },
@@ -39,6 +40,7 @@ const MIGRATIONS: Array<{ id: string; sql: string }> = [
   { id: '0007_volunteer_rota', sql: m0007 },
   { id: '0008_pat_and_preregistration', sql: m0008 },
   { id: '0009_newsletter_opt_in', sql: m0009 },
+  { id: '0010_customer_email', sql: m0010 },
 ];
 
 /** Split a migration into statements. Our SQL never puts ";" inside a string. */

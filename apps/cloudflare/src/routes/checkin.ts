@@ -87,6 +87,7 @@ export async function checkInRoutes(app: App): Promise<void> {
     let customerToken = data.customerToken ?? null;
     let customerName = data.customerName ?? null;
     let customerContact = data.customerContact ?? null;
+    let customerEmail = data.customerEmail?.trim().toLowerCase() || null;
     let gdprConsent = data.gdprConsent === true;
     let newsletterOptIn = data.newsletterOptIn === true;
     let newsletterEmail = data.newsletterEmail?.trim().toLowerCase() || null;
@@ -96,6 +97,7 @@ export async function checkInRoutes(app: App): Promise<void> {
         .select({
           customerName: repairJobs.customerName,
           customerContact: repairJobs.customerContact,
+          customerEmail: repairJobs.customerEmail,
           gdprConsent: repairJobs.gdprConsent,
           newsletterOptIn: repairJobs.newsletterOptIn,
           newsletterEmail: repairJobs.newsletterEmail,
@@ -118,6 +120,7 @@ export async function checkInRoutes(app: App): Promise<void> {
       } else {
         customerName = existing.customerName;
         customerContact = existing.customerContact;
+        customerEmail = existing.customerEmail;
         gdprConsent = existing.gdprConsent;
         // The newsletter choice is per item. Only inherit it when the caller
         // sent no choice at all.
@@ -169,6 +172,7 @@ export async function checkInRoutes(app: App): Promise<void> {
           jobNumber,
           customerName,
           customerContact,
+          customerEmail,
           customerToken,
           itemDescription: data.itemDescription,
           itemCategoryId: data.itemCategoryId ?? null,
