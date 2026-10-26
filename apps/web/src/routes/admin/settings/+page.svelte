@@ -16,7 +16,7 @@
 
   let cafe: any = null;
   let busy = false;
-  type Tab = 'profile' | 'home' | 'linux' | 'gallery' | 'local' | 'maps' | 'preferences' | 'seo' | 'gdpr' | 'telemetry' | 'backup' | 'about';
+  type Tab = 'profile' | 'home' | 'linux' | 'gallery' | 'local' | 'preferences' | 'seo' | 'gdpr' | 'telemetry' | 'backup' | 'about';
   let tab: Tab = 'profile';
 
   $: isSuperAdmin = $auth?.user.role === 'super_admin';
@@ -308,6 +308,7 @@
           bodyFont: bodyFontInput || null,
           donateUrl: cafe.donateUrl || null,
           repaircafeSlug: cafe.repaircafeSlug || null,
+          ordsCountry: cafe.ordsCountry || null,
           socialFacebook: cafe.socialFacebook || null, socialTwitter: cafe.socialTwitter || null,
           socialInstagram: cafe.socialInstagram || null,
         },
@@ -328,6 +329,10 @@
           dataRetentionDays: cafe.dataRetentionDays,
           patTestingEnabled: cafe.patTestingEnabled === true,
           preRegistrationEnabled: cafe.preRegistrationEnabled === true,
+          weighItemsEnabled: cafe.weighItemsEnabled === true,
+          askFirstVisitEnabled: cafe.askFirstVisitEnabled === true,
+          askSatisfactionEnabled: cafe.askSatisfactionEnabled === true,
+          cardNumbersEnabled: cafe.cardNumbersEnabled === true,
         },
       });
       // The menu and the public pages read these from the cafe profile.
@@ -411,30 +416,6 @@
     } finally { busy = false; }
   }
 
-  // ── Map background ────────────────────────────────────────────────
-  // The cafe's CARTO key. Saved on its own so pasting a key does not touch
-  // the list of chosen cafes, and the other way round.
-  let mapsSaved = false;
-  let mapsError = '';
-  async function saveMaps() {
-    busy = true;
-    mapsSaved = false;
-    mapsError = '';
-    try {
-      await api('/api/admin/settings/maps', {
-        method: 'PATCH',
-        json: { cartoApiKey: cafe.cartoApiKey ?? null },
-      });
-      mapsSaved = true;
-      // The public maps read the key from the shared cafe profile, so refresh
-      // it, and reload the form so a pasted address shows as the bare key.
-      await loadCafe();
-      await load();
-    } catch (err) {
-      mapsError = (err as Error).message || 'The key could not be saved. Please try again.';
-    } finally { busy = false; }
-  }
-
   // ── Gallery actions, handed to <GalleryManager> ──────────────────
   async function saveGalleryCaption(photo: ManagedPhoto, caption: string) {
     await api(`/api/admin/gallery/${photo.id}`, { method: 'PATCH', json: { caption } });
@@ -495,7 +476,7 @@
 <h1 class="text-2xl font-bold">Settings</h1>
 
 <div class="mt-3 flex gap-2 flex-wrap">
-  {#each [['profile','Cafe profile'],['home','Home page'],['linux','Linux Repair Cafe'],['gallery','Gallery'],['local','Local cafes'],['maps','Maps'],['preferences','Check-in & preferences'],['seo','SEO & analytics'],['gdpr','GDPR'],['telemetry','Sharing our numbers'], ...(isSuperAdmin ? [['backup','Backup & restore']] : []),['about','About']] as [key, label]}
+  {#each [['profile','Cafe profile'],['home','Home page'],['linux','Linux Repair Cafe'],['gallery','Gallery'],['local','Local cafes'],['preferences','Check-in & preferences'],['seo','SEO & analytics'],['gdpr','GDPR'],['telemetry','Sharing our numbers'], ...(isSuperAdmin ? [['backup','Backup & restore']] : []),['about','About']] as [key, label]}
     <button class="btn-{tab === key ? 'primary' : 'secondary'} btn-sm" on:click={() => (tab = key as Tab)}>{label}</button>
   {/each}
   <a href="/admin/settings/users" class="btn-secondary btn-sm">Users…</a>
@@ -524,6 +505,14 @@
           Paste the address of your cafe's page on repaircafe.org. We use it to highlight you on the
           <a href="/world" class="text-brand-700 underline underline-offset-2" target="_blank" rel="noopener">world map</a>.
           Leave blank if you are not listed yet.
+        </p>
+      </div>
+      <div>
+        <label class="label" for="oc">Country code <span class="font-normal text-slate-500">(optional)</span></label>
+        <input id="oc" class="input w-32 uppercase" maxlength="3" placeholder="GBR" bind:value={cafe.ordsCountry} />
+        <p class="text-xs text-slate-500 mt-1">
+          The 3-letter code for your country, such as GBR, FRA or NLD. It goes in the Open Repair export on the
+          Repairs page.
         </p>
       </div>
       <div>
@@ -1037,87 +1026,6 @@
     </div>
   {/if}
 
-  {#if tab === 'maps'}
-    <div class="card p-6 mt-4 max-w-2xl space-y-4">
-      <div>
-        <h2 class="text-lg font-semibold">Map background <span class="text-xs text-slate-400 font-normal">(CARTO API key)</span></h2>
-        <p class="text-sm text-slate-600 mt-1">
-          The map of nearby cafes on your home page and the map on your Worldwide page both use
-          free map tiles from
-          <a href="https://carto.com/basemaps/" target="_blank" rel="noopener" class="underline underline-offset-2">CARTO</a>.
-          CARTO asks every site to use its own key. Without one the maps still work, but every
-          tile carries an "API key required" watermark. The key is free.
-        </p>
-      </div>
-
-      {#if cafe.cartoApiKey}
-        <div class="rounded-xl bg-emerald-50 ring-1 ring-emerald-200 p-3 text-sm text-emerald-900">
-          <p class="font-semibold">A key is saved.</p>
-          <p class="mt-1">Your maps use it. If you still see the watermark, reload the page with a hard refresh.</p>
-        </div>
-      {:else}
-        <div class="rounded-xl bg-amber-50 ring-1 ring-amber-200 p-3 text-sm text-amber-900">
-          <p class="font-semibold">No key yet.</p>
-          <p class="mt-1">Your maps show an "API key required" watermark until you add one. It takes a few minutes.</p>
-        </div>
-      {/if}
-
-      <details class="rounded-xl bg-slate-50 ring-1 ring-slate-200 p-4 text-sm text-slate-700" open={!cafe.cartoApiKey}>
-        <summary class="cursor-pointer font-semibold text-slate-800">How to get a key</summary>
-        <ol class="mt-2 list-decimal space-y-1.5 pl-5">
-          <li>
-            Go to
-            <a href="https://carto.com/basemaps/apikey/" target="_blank" rel="noopener" class="text-brand-700 underline underline-offset-2">carto.com/basemaps/apikey</a>.
-          </li>
-          <li>
-            Fill in the short form: your email address, the web address of this site
-            {#if cafe.publicUrl}(<code>{cafe.publicUrl}</code>){/if}, and a line about what the map
-            is for. Something like "Repair Cafe website showing nearby Repair Cafes" is enough.
-          </li>
-          <li>CARTO emails the key straight back. You do not need a CARTO account or a bank card.</li>
-          <li>Paste the key below and click <strong>Save map key</strong>.</li>
-        </ol>
-      </details>
-
-      <div>
-        <label class="label" for="carto-key">CARTO API key</label>
-        <input
-          id="carto-key"
-          class="input font-mono"
-          autocomplete="off"
-          spellcheck="false"
-          bind:value={cafe.cartoApiKey}
-          placeholder="Paste the key from CARTO's email"
-        />
-        <p class="text-xs text-slate-500 mt-1">
-          You can paste the whole tile address from the email instead. Only the key is kept.
-          Leave blank to use the maps without a key.
-        </p>
-      </div>
-
-      <ul class="text-xs text-slate-500 space-y-1 list-disc pl-4">
-        <li>The free plan allows 5 million map tiles a month. A cafe website uses a tiny fraction of that.</li>
-        <li>The key is for this site only. CARTO asks that one key is not shared between unrelated projects.</li>
-        <li>
-          The CARTO and OpenStreetMap credits in the corner of the map must stay visible. That is
-          the condition of the free plan, and the hub shows them for you.
-        </li>
-        <li>
-          Still see the watermark after saving? Reload the page with a hard refresh (Ctrl+Shift+R,
-          or Cmd+Shift+R on a Mac). Browsers keep old map tiles for a while.
-        </li>
-      </ul>
-
-      {#if mapsError}
-        <p class="text-sm text-rose-700">{mapsError}</p>
-      {/if}
-      <div class="flex items-center justify-end gap-3 pt-2 border-t">
-        {#if mapsSaved}<span class="text-sm text-emerald-700">Saved</span>{/if}
-        <button class="btn-primary" on:click={saveMaps} disabled={busy}>Save map key</button>
-      </div>
-    </div>
-  {/if}
-
   {#if tab === 'telemetry'}
     <div class="card p-6 mt-4 max-w-3xl space-y-5">
       {#if telemetry?.disabledByEnv}
@@ -1221,6 +1129,51 @@
         <p class="text-sm text-slate-600">
           The repair does not start until the item is checked in on the day. The visitor can check in by scanning the
           QR code, or a volunteer can do it on the "Check in a visitor" page. The repair time starts at check-in.
+        </p>
+      </section>
+
+      <section class="pt-4 border-t border-slate-200 space-y-2">
+        <h2 class="text-lg font-semibold">Extra questions at check-in</h2>
+        <label class="flex items-start gap-3">
+          <input type="checkbox" class="mt-1" bind:checked={cafe.weighItemsEnabled} />
+          <span>Ask for the item's weight</span>
+        </label>
+        <label class="flex items-start gap-3">
+          <input type="checkbox" class="mt-1" bind:checked={cafe.askFirstVisitEnabled} />
+          <span>Ask whether this is the visitor's first visit</span>
+        </label>
+        <p class="text-sm text-slate-600">
+          Each question appears on the visitor's check-in form and on the "Check in a visitor" page. Both are optional,
+          so nobody has to answer. The weight helps you report how much was kept out of the bin: the Statistics page
+          shows the total weight of the items that were fixed. Both answers are in the repairs export.
+        </p>
+      </section>
+
+      <section class="pt-4 border-t border-slate-200 space-y-2">
+        <h2 class="text-lg font-semibold">Question at the exit</h2>
+        <label class="flex items-start gap-3">
+          <input type="checkbox" class="mt-1" bind:checked={cafe.askSatisfactionEnabled} />
+          <span>Ask visitors if they are satisfied when they collect their item</span>
+        </label>
+        <p class="text-sm text-slate-600">
+          When this is on, a finished repair's page has two buttons, "Satisfied" and "Not satisfied", and a box for a
+          comment. Any volunteer can record the answer, so the person at the door does not have to be the repairer. The
+          Statistics page shows the share of visitors who were satisfied. A comment is removed with the visitor's other
+          personal details at the end of the data retention period.
+        </p>
+      </section>
+
+      <section class="pt-4 border-t border-slate-200 space-y-2">
+        <h2 class="text-lg font-semibold">Numbered cards</h2>
+        <label class="flex items-start gap-3">
+          <input type="checkbox" class="mt-1" bind:checked={cafe.cardNumbersEnabled} />
+          <span>Give each visitor a numbered card at check-in</span>
+        </label>
+        <p class="text-sm text-slate-600">
+          Some cafes keep a set of numbered cards, from 1 to 50 or fewer. A volunteer hands one to each visitor and
+          uses the number to call them. When this is on, the "Check in a visitor" page asks which card was handed
+          out, and the waiting-room screen shows the card number instead of the job number. A number is free again
+          once the item is collected, so the same cards can be used all session.
         </p>
       </section>
 

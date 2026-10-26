@@ -22,6 +22,8 @@ import { co2Settings, listFactors } from '../services/co2.js';
 import { linuxStats, linuxStatsForEvent } from '../services/linux.js';
 import { activeAnalytics, enabledQwaEvents } from '@circularity/shared';
 import { closedReason } from '../services/preRegistration.js';
+import { telemetryClaim } from '../services/telemetry.js';
+import { sha256Hex } from '../lib/crypto.js';
 
 /** How many photos the site's main gallery will ever return. */
 const MAIN_GALLERY_LIMIT = 60;
@@ -56,6 +58,13 @@ export async function publicRoutes(app: App): Promise<void> {
       // unless an admin turns them on.
       preRegistrationEnabled: cafe.preRegistrationEnabled,
       patTestingEnabled: cafe.patTestingEnabled,
+      // The optional questions at check-in and at the exit. Each is off unless
+      // an admin turns it on.
+      weighItemsEnabled: cafe.weighItemsEnabled,
+      askFirstVisitEnabled: cafe.askFirstVisitEnabled,
+      askSatisfactionEnabled: cafe.askSatisfactionEnabled,
+      // Numbered cards handed to visitors at check-in. Off unless turned on.
+      cardNumbersEnabled: cafe.cardNumbersEnabled,
       primaryColor: cafe.primaryColor,
       accentColor: cafe.accentColor,
       headingFont: cafe.headingFont,
@@ -74,10 +83,6 @@ export async function publicRoutes(app: App): Promise<void> {
       qwaSite: analytics === 'qwa' ? cafe.qwaSite : null,
       qwaSrc: analytics === 'qwa' ? cafe.qwaSrc : null,
       qwaEvents: analytics === 'qwa' ? enabledQwaEvents(cafe.qwaEvents) : [],
-      // The cafe's key for CARTO's free map tiles. The visitor's browser
-      // fetches the tiles, so the key has to reach it, and it is in every
-      // tile address anyway. Null until an admin pastes one under Settings.
-      cartoApiKey: cafe.cartoApiKey,
       // Set when the cafe is listed on repaircafe.org. The world map uses it
       // to highlight our own pin.
       repaircafeSlug: cafe.repaircafeSlug,
@@ -234,6 +239,9 @@ export async function publicRoutes(app: App): Promise<void> {
       sessionsHeld: Number(o.sessions ?? 0),
       volunteers: Number(o.volunteers ?? 0),
       co2SavedKg: Math.round(Number(t.co2_kg ?? 0) * 10) / 10,
+      // The hash of this hub's claim secret. It ties this install id to this
+      // site, so nobody who copies the id can pass as us. See telemetryClaim().
+      claimHash: await sha256Hex((await telemetryClaim()) ?? ''),
     };
   });
 

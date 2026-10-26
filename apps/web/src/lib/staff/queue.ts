@@ -6,6 +6,7 @@
 //  and when a wait counts as long.
 // =============================================================================
 
+import { isBenchTime } from '@circularity/shared';
 import { tNow } from '$lib/i18n';
 
 export type RepairStatus = 'waiting' | 'in_progress' | 'completed' | 'cannot_repair' | 'awaiting_return' | 'returned';
@@ -108,7 +109,7 @@ export function averageRepairMinutes(
   const durations = jobs
     .filter((j) => j.acceptedAt && j.completedAt)
     .map((j) => minutesBetween(j.acceptedAt, new Date(j.completedAt!).getTime()))
-    .filter((m) => m > 0 && m < 240);
+    .filter(isBenchTime);
   if (!durations.length) return null;
   return Math.round(durations.reduce((a, b) => a + b, 0) / durations.length);
 }

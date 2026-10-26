@@ -63,6 +63,14 @@ export interface CafeInfo {
   preRegistrationEnabled?: boolean;
   /** Repairers record a PAT test for electrical items. Off unless an admin turns it on. */
   patTestingEnabled?: boolean;
+  /** Ask for the item's weight at check-in. Off unless an admin turns it on. */
+  weighItemsEnabled?: boolean;
+  /** Ask whether this is the visitor's first visit. Off unless an admin turns it on. */
+  askFirstVisitEnabled?: boolean;
+  /** Ask the visitor at the exit if they are satisfied. Off unless an admin turns it on. */
+  askSatisfactionEnabled?: boolean;
+  /** Visitors get a numbered card at check-in. Off unless an admin turns it on. */
+  cardNumbersEnabled?: boolean;
   gallery: GalleryImage[];
   primaryColor: string | null;
   accentColor: string | null;
@@ -86,12 +94,6 @@ export interface CafeInfo {
   qwaSrc?: string | null;
   /** The QWA events this cafe counts. */
   qwaEvents?: QwaEventKey[];
-  /**
-   * The cafe's key for CARTO's free map tiles, or null while there is none.
-   * Without it the maps still draw, but every tile carries an "API key
-   * required" watermark.
-   */
-  cartoApiKey: string | null;
   /** Slug of this cafe's own listing on repaircafe.org, when it has one. */
   repaircafeSlug: string | null;
   // Hash of the branding the home screen icons are built from. Used to point

@@ -2,6 +2,128 @@
 
 Notable changes to the Repair Café Hub. Newest first.
 
+## 1.14.0 (23 October 2026)
+
+### Added
+
+- **Change whether a pre-registered item needs a PAT test.** A pre-registered
+  item took its PAT test label from its category, and nobody could change it
+  until the item arrived. So a games controller that only uses batteries showed
+  **PAT test needed** because it was listed under small electricals. The item's
+  page now has a **This is an electrical item** tick box, like a repair's page.
+  The repairer who took the item, or an admin, can untick it before the day.
+  The repair keeps that choice when the item is checked in.
+
+### Changed
+
+- **You can install the hub with only a free Cloudflare account.** The install
+  guide no longer starts with a domain name. Your hub starts on its free
+  `workers.dev` address, and every part of it works there. Moving a domain's
+  DNS to Cloudflare worried some cafes, so it is now an optional last section,
+  "Later: add your own web address". It covers buying a new domain from
+  Cloudflare (nothing moves), moving an existing domain safely without losing
+  your website or email, and what to change in the hub afterwards.
+
+## 1.13.2 (22 October 2026)
+
+### Security
+
+- **Nobody can pass as your hub on the community map.** Your hub's install
+  id is public, because the project reads it from your site to check your hub
+  is real. Somebody could copy it and register as your hub before it did, then
+  show your cafe on the map with their own link and lock your hub out. Your hub
+  now makes a secret of its own, sends it with each message, and publishes only
+  its hash. The project, from collector 3.2.0, refuses anybody whose secret does
+  not match, and your hub takes its place back by itself if it is ever refused.
+
+## 1.13.1 (22 October 2026)
+
+### Security
+
+**Please update.** These come from a security review of the hub.
+
+- **A hub could be taken over during a restore.** While a super admin restored
+  a backup, the hub looked brand new for a few minutes. Anyone who noticed
+  could finish setup and get a super admin account, or start a restore of
+  their own. The hub now remembers that it has been set up, somewhere a restore
+  does not wipe, and refuses both.
+- **An admin could take over a super admin account.** An admin could make a
+  password reset link for a super admin, which signs whoever uses it in as
+  them. An admin could also demote, lock out or change the email of a super
+  admin. Only a super admin can do these things now.
+- **A visitor's name could be read by anyone.** With a session's check-in link
+  and the address of a published repair photo, anyone could read the name of
+  the visitor who brought the item in, and add photos to it. Both now need the
+  visitor's own tracking token, which only they are given. A visitor can add up
+  to 3 photos, and only while the item is waiting.
+- **Volunteers were sent visitors' tracking tokens.** Some pages for
+  volunteers received a visitor's tracking token, which a volunteer could use
+  to cancel the visitor's pre-registered items. Volunteers no longer receive it.
+- **A volunteer could save any CO2 figure, and count a repair many times.**
+  The CO2 saving must now be between 0 and 10,000 kg, and saving a finished
+  repair again no longer adds to the repairer's total.
+
+### Fixed
+
+- **The CSV exports work again.** The Export CSV buttons on the Repairs and
+  Statistics pages, the Open Repair export, and the Linux installs export all
+  failed with "Authentication required". They now download properly.
+- **Exports are safe to open in a spreadsheet.** Text that a spreadsheet would
+  run as a formula, such as a name that starts with "=", is now saved as plain
+  text.
+
+## 1.13.0 (22 October 2026)
+
+### Added
+
+- **Find your cafe on repaircafe.org.** The setup wizard now asks which
+  repaircafe.org listing is your cafe's own, and suggests likely matches from
+  your cafe's name, town and postcode. Hubs that are already running are asked
+  once on the dashboard after updating, while no listing is linked. Linking it
+  picks your cafe out on the Worldwide map and centres "Repair Cafes near us"
+  on you. "We're not listed" stops the question.
+- **Two optional questions at check-in.** Under Settings, Check-in &
+  preferences, you can now ask for the item's weight, and whether this is the
+  visitor's first visit. Each has its own switch, and both are off by default.
+  The Statistics page shows the total weight of the items that were fixed, and
+  both answers are in the repairs export. Thanks to Florian Chazal of the
+  Repair Café in Villeneuve-Loubet (#7).
+- **A question at the exit.** A new switch under Settings, Check-in &
+  preferences. When it is on, a volunteer can record whether the visitor was
+  satisfied when they collected their item, with an optional comment. The
+  Statistics page shows the share who were satisfied. The comment is removed
+  with the visitor's other personal details. Off by default. Thanks again to
+  Florian Chazal (#8).
+- **Numbered cards.** A new switch under Settings, Check-in & preferences.
+  When it is on, a volunteer picks the number of the card they handed to the
+  visitor, and the waiting-room screen calls them by it. A number is free again
+  once the item leaves, so the same cards can be used all session. Off by
+  default. Thanks again to Florian Chazal (#9).
+- **An Open Repair export.** A new button on the Repairs page downloads every
+  finished repair in the Open Repair Data Standard, so you can share your
+  results with the Open Repair Alliance. Set your country under Settings, Cafe
+  profile. Thanks again to Florian Chazal (#10).
+
+### Changed
+
+- **The maps no longer need a key.** The map of nearby cafes on the home page
+  and the Worldwide map now use free map tiles from
+  [OpenFreeMap](https://openfreemap.org/), drawn with MapLibre GL. OpenFreeMap
+  needs no key, no account and no sign-up, so the maps work as soon as the hub
+  is installed, with no "API key required" watermark.
+- The Maps tab under Settings has gone, because there is nothing left to set
+  up. A CARTO key saved there before is no longer used. The database keeps the
+  old column, so older backups still load.
+
+### Fixed
+
+- **Average repair times on the Statistics page.** A repair that was taken on
+  at one session and only marked as finished at the next one counted the weeks
+  in between. One such repair turned a session's average of 83 minutes into
+  420 hours. Statistics now leave out any repair that took 4 hours or more, the
+  same rule the live board already used, and the session's page shows it as
+  "Finished later".
+
 ## 1.12.1 (15 October 2026)
 
 ### Fixed

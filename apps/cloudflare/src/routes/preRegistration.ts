@@ -13,6 +13,7 @@
 //    PATCH  /api/repairer/pre-registrations/:id/claim  take it to look into
 //    PATCH  /api/repairer/pre-registrations/:id/release
 //    PATCH  /api/repairer/pre-registrations/:id/notes  what you found out
+//    PATCH  /api/repairer/pre-registrations/:id/electrical  PAT test or not
 //    POST   /api/repairer/pre-registrations/:id/check-in   it has arrived
 //    PATCH  /api/repairer/pre-registrations/:id/cancel admins only
 //
@@ -21,6 +22,7 @@
 //  See services/preRegistration.ts for how an item becomes a repair.
 // =============================================================================
 import { and, asc, count, eq, gte, inArray, sql } from 'drizzle-orm';
+import { withoutVisitorToken } from '../utils/visitor.js';
 import { needsPatTest, preRegistrationSchema } from '@circularity/shared';
 import type { App, HubReply } from '../lib/router.js';
 import { db } from '../db/index.js';
@@ -360,7 +362,7 @@ export async function preRegistrationStaffRoutes(app: App): Promise<void> {
         hasNotes: Boolean(r.pre.researchNotes?.trim()),
         categoryId: r.pre.itemCategoryId,
         category: r.category?.name ? r.category : null,
-        needsPat: needsPatTest(features.patTestingEnabled, null, r.category?.isElectrical),
+        needsPat: needsPatTest(features.patTestingEnabled, r.pre.isElectrical, r.category?.isElectrical),
         event: r.event,
       })),
     };
@@ -407,7 +409,15 @@ export async function preRegistrationStaffRoutes(app: App): Promise<void> {
       },
       category: row.category?.id ? row.category : null,
       repairer: row.repairer?.id ? row.repairer : null,
-      needsPat: needsPatTest(features.patTestingEnabled, null, row.category?.isElectrical),
+      needsPat: needsPatTest(features.patTestingEnabled, row.pre.isElectrical, row.category?.isElectrical),
+      // Null while the cafe does not do PAT tests, so the page shows nothing about them.
+      pat: features.patTestingEnabled
+        ? {
+            needed: needsPatTest(true, row.pre.isElectrical, row.category?.isElectrical),
+            itemIsElectrical: row.pre.isElectrical,
+            categoryIsElectrical: row.category?.isElectrical ?? false,
+          }
+        : null,
     };
   });
 
@@ -425,7 +435,7 @@ export async function preRegistrationStaffRoutes(app: App): Promise<void> {
       reply.code(409).send({ error: 'This item has already been checked in or cancelled', code: 'preregistration/not_open' });
       return;
     }
-    if (pre.repairerId === me.sub) return pre;
+    if (pre.repairerId === me.sub) return withoutVisitorToken(pre);
     const [updated] = await db
       .update(preRegistrations)
       .set({ repairerId: me.sub, claimedAt: new Date(), updatedAt: new Date() })
@@ -440,7 +450,7 @@ export async function preRegistrationStaffRoutes(app: App): Promise<void> {
       entityId: id,
       metadata: pre.repairerId ? { previousRepairerId: pre.repairerId } : undefined,
     });
-    return updated;
+    return withoutVisitorToken(updated);
   });
 
   app.patch('/api/repairer/pre-registrations/:id/release', async (request, reply) => {
@@ -470,7 +480,7 @@ export async function preRegistrationStaffRoutes(app: App): Promise<void> {
       entityType: 'pre_registration',
       entityId: id,
     });
-    return updated;
+    return withoutVisitorToken(updated);
   });
 
   // Notes stay with the item. Whoever repairs it on the day sees them.
@@ -499,7 +509,54 @@ export async function preRegistrationStaffRoutes(app: App): Promise<void> {
       .set({ researchNotes: notes || null, updatedAt: new Date() })
       .where(eq(preRegistrations.id, id))
       .returning();
-    return updated;
+    return withoutVisitorToken(updated);
+  });
+
+  // Say whether this one item is electrical, whatever its category says.
+  // Null goes back to following the category. The repair gets the same value
+  // when the item is checked in.
+  app.patch('/api/repairer/pre-registrations/:id/electrical', async (request, reply) => {
+    const features = await cafeFeatures();
+    if (!features.preRegistrationEnabled) return featureOff(reply);
+    if (!features.patTestingEnabled) {
+      reply.code(404).send({ error: 'PAT testing is switched off', code: 'pat/off' });
+      return;
+    }
+    const { id } = request.params as { id: string };
+    const me = request.auth!;
+    const body = (request.body ?? {}) as { isElectrical?: unknown };
+    if (!(body.isElectrical === true || body.isElectrical === false || body.isElectrical === null)) {
+      reply.code(400).send({ error: 'isElectrical must be true, false or null', code: 'validation/failed' });
+      return;
+    }
+    const pre = await load(id);
+    if (!pre) {
+      reply.code(404).send({ error: 'Not found', code: 'preregistration/not_found' });
+      return;
+    }
+    if (pre.status !== 'open') {
+      reply.code(409).send({ error: 'This item has already been checked in or cancelled', code: 'preregistration/not_open' });
+      return;
+    }
+    if (pre.repairerId !== me.sub && me.role === 'repairer') {
+      reply.code(403).send({ error: 'Take this item first, then change this', code: 'preregistration/not_owner' });
+      return;
+    }
+    const [updated] = await db
+      .update(preRegistrations)
+      .set({ isElectrical: body.isElectrical, updatedAt: new Date() })
+      .where(eq(preRegistrations.id, id))
+      .returning();
+    await audit({
+      request,
+      actorId: me.sub,
+      actorType: me.role,
+      action: 'preregistration.electrical_changed',
+      entityType: 'pre_registration',
+      entityId: id,
+      metadata: { isElectrical: body.isElectrical },
+    });
+    return withoutVisitorToken(updated);
   });
 
   // A volunteer checks the item in when the visitor arrives.

@@ -4,6 +4,7 @@
   import { onMount } from 'svelte';
   import { api } from '$lib/api';
   import { auth } from '$lib/stores/auth';
+  import { cafe } from '$lib/stores/cafe';
   import PatBadge from '$lib/components/PatBadge.svelte';
   import { ArrowLeft } from 'lucide-svelte';
 
@@ -34,11 +35,13 @@
     categoryId: '',
     customerName: '',
     customerContact: '',
+    customerEmail: '',
     outcomeNotes: '',
     partsUsed: '',
     environmentalSavingKg: '' as string | number,
     weightKg: '' as string | number,
-    isFirstVisit: false,
+    /** 'yes', 'no', or '' when nobody answered. */
+    firstVisit: '' as '' | 'yes' | 'no',
     satisfaction: '' as '' | 'satisfied' | 'not_satisfied',
     satisfactionComment: '',
     cardNumber: '' as string | number,
@@ -59,11 +62,12 @@
       categoryId: detail.job.itemCategoryId ?? '',
       customerName: detail.job.customerName ?? '',
       customerContact: detail.job.customerContact ?? '',
+      customerEmail: detail.job.customerEmail ?? '',
       outcomeNotes: detail.job.outcomeNotes ?? '',
       partsUsed: detail.job.partsUsed ?? '',
       environmentalSavingKg: detail.job.environmentalSavingKg ?? '',
       weightKg: detail.job.weightKg ?? '',
-      isFirstVisit: detail.job.isFirstVisit ?? false,
+      firstVisit: detail.job.isFirstVisit === true ? 'yes' : detail.job.isFirstVisit === false ? 'no' : '',
       satisfaction: detail.job.satisfaction ?? '',
       satisfactionComment: detail.job.satisfactionComment ?? '',
       cardNumber: detail.job.cardNumber ?? '',
@@ -86,11 +90,12 @@
           itemCategoryId: form.categoryId || null,
           customerName: form.customerName || null,
           customerContact: form.customerContact || null,
+          customerEmail: form.customerEmail || null,
           outcomeNotes: form.outcomeNotes || null,
           partsUsed: form.partsUsed || null,
           environmentalSavingKg: form.environmentalSavingKg === '' ? null : Number(form.environmentalSavingKg),
           weightKg: form.weightKg === '' ? null : Number(form.weightKg),
-          isFirstVisit: form.isFirstVisit,
+          isFirstVisit: form.firstVisit === 'yes' ? true : form.firstVisit === 'no' ? false : null,
           satisfaction: form.satisfaction || null,
           satisfactionComment: form.satisfactionComment || null,
           cardNumber: form.cardNumber === '' ? null : Number(form.cardNumber),
@@ -226,9 +231,11 @@
       <div><label class="label" for="im">Item</label><input id="im" class="input" bind:value={form.itemDescription} /></div>
       <div><label class="label" for="br">Brand</label><input id="br" class="input" bind:value={form.itemBrand} /></div>
     </div>
-    <div class="grid sm:grid-cols-2 gap-3">
-      <div><label class="label" for="cn2">Session number</label><input id="cn2" class="input" type="number" min="0" bind:value={form.cardNumber} /></div>
-    </div>
+    {#if $cafe?.cardNumbersEnabled || form.cardNumber !== ''}
+      <div class="grid sm:grid-cols-2 gap-3">
+        <div><label class="label" for="cn2">Card number</label><input id="cn2" class="input" type="number" min="1" max="999" bind:value={form.cardNumber} /></div>
+      </div>
+    {/if}
     <div>
       <label class="label" for="cat">Category</label>
       <select id="cat" class="input" bind:value={form.categoryId}>
@@ -239,20 +246,32 @@
     <div><label class="label" for="ft">Fault</label><textarea id="ft" class="input" rows="3" bind:value={form.faultDescription}></textarea></div>
     <div class="grid sm:grid-cols-2 gap-3">
       <div><label class="label" for="cn">Customer</label><input id="cn" class="input" bind:value={form.customerName} /></div>
-      <div><label class="label" for="cc">Contact</label><input id="cc" class="input" bind:value={form.customerContact} /></div>
+      <div><label class="label" for="cc">Phone</label><input id="cc" class="input" bind:value={form.customerContact} /></div>
+      <div><label class="label" for="ce">Email</label><input id="ce" class="input" type="email" bind:value={form.customerEmail} /></div>
     </div>
     <div><label class="label" for="on">Repair notes</label><textarea id="on" class="input" rows="3" bind:value={form.outcomeNotes}></textarea></div>
     <div class="grid sm:grid-cols-2 gap-3">
       <div><label class="label" for="pa">Parts used</label><input id="pa" class="input" bind:value={form.partsUsed} /></div>
       <div><label class="label" for="es">Saving (kg)</label><input id="es" class="input" type="number" step="0.001" bind:value={form.environmentalSavingKg} /></div>
     </div>
-    <div class="grid sm:grid-cols-2 gap-3">
-      <div><label class="label" for="wt">Weight (kg)</label><input id="wt" class="input" type="number" step="0.001" bind:value={form.weightKg} /></div>
-      <label class="flex items-center gap-3 cursor-pointer text-sm text-slate-700 sm:pt-6">
-        <input type="checkbox" class="h-5 w-5 rounded border-slate-300 text-brand-600" bind:checked={form.isFirstVisit} />
-        <span>First visit</span>
-      </label>
-    </div>
+    <!-- Shown while the cafe asks for them, or when this repair already has an answer. -->
+    {#if $cafe?.weighItemsEnabled || $cafe?.askFirstVisitEnabled || form.weightKg !== '' || form.firstVisit !== ''}
+      <div class="grid sm:grid-cols-2 gap-3">
+        {#if $cafe?.weighItemsEnabled || form.weightKg !== ''}
+          <div><label class="label" for="wt">Weight (kg)</label><input id="wt" class="input" type="number" min="0" step="0.001" bind:value={form.weightKg} /></div>
+        {/if}
+        {#if $cafe?.askFirstVisitEnabled || form.firstVisit !== ''}
+          <div>
+            <label class="label" for="fv">First visit</label>
+            <select id="fv" class="input" bind:value={form.firstVisit}>
+              <option value="">Not answered</option>
+              <option value="yes">Yes</option>
+              <option value="no">No</option>
+            </select>
+          </div>
+        {/if}
+      </div>
+    {/if}
     <div>
       <label class="label" for="st">Status</label>
       <select id="st" class="input" bind:value={form.status}>
@@ -263,6 +282,7 @@
         <option value="awaiting_return">Awaiting return</option>
       </select>
     </div>
+    {#if $cafe?.askSatisfactionEnabled || form.satisfaction !== '' || form.satisfactionComment !== ''}
     <div class="grid sm:grid-cols-2 gap-3">
       <div>
         <label class="label" for="sat">Satisfaction</label>
@@ -274,6 +294,7 @@
       </div>
       <div><label class="label" for="satc">Comment</label><input id="satc" class="input" maxlength="500" bind:value={form.satisfactionComment} /></div>
     </div>
+    {/if}
     <div class="flex justify-end"><button class="btn-primary" on:click={save} disabled={busy}>Save</button></div>
   </div>
 

@@ -148,14 +148,25 @@ export const cafes = sqliteTable('cafes', {
   qwaSrc: text('qwa_src'),
   /** The QWA events to count. Null means every one. */
   qwaEvents: json('qwa_events'),
+  /**
+   * No longer used. Hubs before 1.13.0 kept a CARTO map key here. The maps now
+   * use OpenFreeMap, which needs no key. The column stays so that older
+   * databases and backups still load.
+   */
   cartoApiKey: text('carto_api_key'),
   /** The secret part of the waiting-room display link. See routes/display.ts. */
   displayToken: text('display_token'),
   repaircafeSlug: text('repaircafe_slug'),
+  /** The hub version at which we last asked which listing is ours. */
+  listingPromptedVersion: text('listing_prompted_version'),
+  /** The admin told us the cafe is not on repaircafe.org, so we stop asking. */
+  listingNotListed: bool('listing_not_listed').notNull().default(false),
   localCafeSlugs: textArray('local_cafe_slugs').notNull().default([]),
   telemetryLevel: text('telemetry_level').notNull().default('none'),
   telemetryInstallId: uuid('telemetry_install_id'),
   telemetryToken: text('telemetry_token'),
+  /** This hub's own secret for the collector. Only its hash is ever published. */
+  telemetryClaim: text('telemetry_claim'),
   telemetryLastSentAt: timestamp('telemetry_last_sent_at'),
   telemetryDecidedAt: timestamp('telemetry_decided_at'),
   telemetryPromptedVersion: text('telemetry_prompted_version'),
@@ -172,6 +183,16 @@ export const cafes = sqliteTable('cafes', {
   patTestingEnabled: bool('pat_testing_enabled').notNull().default(false),
   /** Let visitors tell us about an item before the session. */
   preRegistrationEnabled: bool('pre_registration_enabled').notNull().default(false),
+  /** Ask for the item's weight at check-in. */
+  weighItemsEnabled: bool('weigh_items_enabled').notNull().default(false),
+  /** Ask whether this is the visitor's first visit. */
+  askFirstVisitEnabled: bool('ask_first_visit_enabled').notNull().default(false),
+  /** Ask the visitor at the exit whether they are satisfied. */
+  askSatisfactionEnabled: bool('ask_satisfaction_enabled').notNull().default(false),
+  /** Give each visitor a numbered card for the session. */
+  cardNumbersEnabled: bool('card_numbers_enabled').notNull().default(false),
+  /** The cafe's country for the ORDS export, as a 3-letter code such as GBR. */
+  ordsCountry: text('ords_country'),
   dataRetentionDays: integer('data_retention_days').notNull().default(365),
   createdAt: timestamp('created_at').notNull().$defaultFn(() => new Date()),
   updatedAt: timestamp('updated_at').notNull().$defaultFn(() => new Date()),
@@ -579,6 +600,8 @@ export const preRegistrations = sqliteTable(
     repairerId: uuid('repairer_id').references(() => users.id, { onDelete: 'set null' }),
     claimedAt: timestamp('claimed_at'),
     researchNotes: text('research_notes'),
+    /** Null means "the same as its category". Copied to the repair at check-in. */
+    isElectrical: bool('is_electrical'),
     /** The repair it became when it was checked in. */
     repairJobId: uuid('repair_job_id').references(() => repairJobs.id, { onDelete: 'set null' }),
     checkedInAt: timestamp('checked_in_at'),

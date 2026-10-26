@@ -16,6 +16,8 @@ The basics. Used everywhere — header, hero, footer, emails, QR codes.
 | Contact email     | Footer, contact section                                       |
 | Phone             | Contact section (optional)                                    |
 | Public URL        | **Encoded into every QR code.** Match your reverse-proxy domain. |
+| Your page on repaircafe.org | Your cafe's listing on repaircafe.org (optional). It picks you out on the Worldwide map, and "Repair Cafes near us" is measured from it. Paste the page's address. |
+| Country code      | Your country as 3 letters, such as GBR or FRA. Used in the Open Repair export (optional). |
 | Primary colour    | Buttons, links, accents across the public + admin UI          |
 | Facebook URL      | Footer / contact icon link (optional)                         |
 | Twitter / X URL   | Footer / contact icon link (optional)                         |
@@ -96,6 +98,12 @@ Pick up to ten nearby Repair Cafes you know and want to support. They show on
 your home page as a small map beside a numbered list, so a visitor you cannot
 help can find someone who can.
 
+If your hub does not know your repaircafe.org page yet, the dashboard asks
+once after each update: **Is your cafe on repaircafe.org?** It suggests
+listings that match your cafe's name and home venue. Choose **This is us**,
+**We're not listed** (it stops asking), or **Not now** (it asks again after the
+next update).
+
 Search by name or town. Once your own repaircafe.org page is set under Cafe
 profile, the list starts with your closest neighbours. Only the repaircafe.org
 slug is stored, so names, addresses and pins are read fresh from the directory
@@ -103,47 +111,18 @@ and never go stale.
 
 **Save local cafes** commits the list.
 
-## Tab: Maps
+## Maps
 
-The map on your home page and the map on the Worldwide page both use free map
-tiles from [CARTO](https://carto.com/basemaps/). CARTO asks every site to use
-its own key. Without one the maps still work, but every tile carries an
-"API key required" watermark.
+There is nothing to set up for the maps. The map of nearby cafes on your home
+page and the map on the Worldwide page use free map tiles from
+[OpenFreeMap](https://openfreemap.org/). OpenFreeMap needs no key and no
+account.
 
-The key is free. To get one:
+The OpenFreeMap and OpenStreetMap credits in the corner of each map must stay
+visible. The hub shows them for you.
 
-1. Go to [carto.com/basemaps/apikey](https://carto.com/basemaps/apikey/).
-2. Fill in the short form: your email address, the web address of your site,
-   and a line about what the map is for. Something like "Repair Cafe website
-   showing nearby Repair Cafes" is enough.
-3. CARTO emails the key straight back. There is no approval queue, and you do
-   not need a CARTO account or a bank card.
-4. Paste the key into the **CARTO API key** field under Settings, Maps, and
-   click **Save map key**.
-   You can paste the whole tile address from the email if that is easier. Only
-   the key is kept.
-
-| Field         | Notes                                                                    |
-| ------------- | ------------------------------------------------------------------------ |
-| CARTO API key | The key from CARTO's email. Blank means no key, and the watermark stays. |
-
-The tab says whether a key is saved, and the steps above are folded away once
-one is.
-
-Things worth knowing:
-
-- The free plan allows 5 million tile requests a calendar month. A cafe website
-  uses a tiny fraction of that.
-- The key is for this site. CARTO asks that one key is not shared between
-  unrelated projects.
-- The CARTO and OpenStreetMap credits in the corner of the map must stay
-  visible. That is the condition of the free plan. The hub shows them for you.
-- The key is not a secret. The visitor's browser fetches the tiles, so the key
-  is in every tile address and in the public cafe profile. That is how CARTO
-  keys are designed to work.
-- If the watermark is still there after you save, reload the page with a hard
-  refresh (Ctrl+Shift+R, or Cmd+Shift+R on a Mac). Browsers keep old map tiles
-  for a while.
+Hubs before version 1.13.0 had a Maps tab for a CARTO key. That tab has gone,
+and any key you saved there is no longer used.
 
 ## Tab: Check-in & preferences
 
@@ -156,6 +135,10 @@ Three controls that change the customer check-in flow.
 | Data retention period (days)      | How long after the event date customer name/contact is kept. Default 365. Used by the GDPR purge. |
 | PAT testing                       | Off by default. When it is on, electrical items need a PAT test before they can be marked as fixed. See below. |
 | Pre-registration                  | Off by default. When it is on, visitors can tell you about an item before a session. See below. |
+| Ask for the item's weight         | Off by default. Adds an optional weight field to check-in. See below. |
+| Ask whether this is the visitor's first visit | Off by default. Adds an optional Yes or No question to check-in. See below. |
+| Ask visitors if they are satisfied | Off by default. Adds a question to a finished repair's page, for when the visitor collects their item. See below. |
+| Give each visitor a numbered card | Off by default. Lets volunteers hand out reusable numbered cards and call visitors by them. See below. |
 
 **Save preferences** commits this tab.
 
@@ -180,10 +163,64 @@ When you turn on **Ask repairers for a PAT test on electrical items**:
 Which items are electrical? Each skill category has an **Electrical** label on
 the **Skills** page. New hubs start with **Electronics** and **Small
 appliances** marked as electrical. A repairer can also change it for a single
-item, with the **This is an electrical item** tick box on the repair's page.
+item, with the **This is an electrical item** tick box on the repair's page. A
+pre-registered item has the same tick box on its page, so the repairer who took
+it, or an admin, can change it before the day. The repair keeps that choice
+when the item is checked in.
 
 When PAT testing is off, nothing about it appears anywhere, and repairs work
 exactly as before.
+
+### Extra questions at check-in
+
+Two optional questions, each with its own switch. They appear on the visitor's
+check-in form and on the **Check in a visitor** page. Nobody has to answer.
+
+- **Ask for the item's weight.** Some cafes weigh what comes in, so they can
+  report how much was kept out of the bin. Funders and councils often ask for
+  this. Type the weight in kilograms. "1,5" and "1.5" both work. The
+  **Statistics** page shows the total weight of the items that were fixed.
+- **Ask whether this is the visitor's first visit.** The answer is Yes, No, or
+  not answered. Not answering is kept apart from No, so your figures only count
+  the people who answered.
+
+Admins can change both answers on a repair's page. Both are in the CSV export,
+as `weightKg` and `isFirstVisit`.
+
+### Question at the exit
+
+When you turn on **Ask visitors if they are satisfied when they collect their
+item**, a finished repair's page has two buttons, **Satisfied** and **Not
+satisfied**, and a box for a comment. Any volunteer can record the answer, so
+the person at the door does not have to be the repairer who did the work. A
+wrong answer can be changed or cleared.
+
+The **Statistics** page shows the share of visitors who said they were
+satisfied, counting only the visitors who answered. Admins can change the
+answer on a repair's page, and the CSV export has `satisfaction` and
+`satisfactionComment` columns.
+
+People often put a name or a phone number in a comment. So the comment is
+removed with the visitor's other personal details at the end of the data
+retention period. The answer itself stays, for the statistics.
+
+### Numbered cards
+
+Some cafes keep a set of numbered cards, from 1 to 50 or fewer. A volunteer
+hands one to each visitor at check-in, and calls them by that number. When
+you turn on **Give each visitor a numbered card at check-in**:
+
+- The **Check in a visitor** page shows the numbers 1 to 50. Tap the number on
+  the card you handed out. Numbers already with a visitor are greyed out.
+- The waiting-room screen shows the card number instead of the job number.
+- A number is free again once the item leaves: fixed, could not be fixed, or
+  collected. So the same cards can be used all session, and in every session.
+- If two volunteers pick the same number at the same moment, the second is told
+  the number is taken and can pick another.
+
+Admins can change a repair's card number on its page. The hub will not let two
+open repairs in the same session have the same number. The CSV export has a
+`cardNumber` column.
 
 ### Pre-registration
 
@@ -322,6 +359,17 @@ time.
 
 The summary goes once a day and always carries running totals, so a session
 offline changes nothing: the next message carries the full picture.
+
+To check your hub is real, the project reads `/api/public/telemetry` on your
+own web address. Only the figures it reads there are published, never the ones
+in the message. On the map you appear with the name your site shows, a link to
+your site, and a pin from your repaircafe.org listing (set it under Cafe
+profile).
+
+Your hub also makes a secret of its own and sends it with each message. Only a
+scrambled version of it (a hash) appears on `/api/public/telemetry`. This stops
+anybody who copies your hub's details from pretending to be you. If that ever
+happened, your hub would take its place back by itself.
 
 Someone running this server can rule it out entirely with `TELEMETRY_DISABLED=true`
 in the environment, in which case this tab says so and the choices do nothing.

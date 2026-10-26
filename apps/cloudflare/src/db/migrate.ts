@@ -22,25 +22,35 @@ import { APP_VERSION } from '../version.js';
 import m0001 from './migrations/0001_init.js';
 import m0002 from './migrations/0002_display_token.js';
 import m0003 from './migrations/0003_qwa_analytics.js';
-import m0004 from './migrations/0004_checkin_weight_first_visit.js';
+import m0004CheckinWeight from './migrations/0004_checkin_weight_first_visit.js';
 import m0005 from './migrations/0005_exit_satisfaction.js';
 import m0006 from './migrations/0006_session_card_number.js';
-import m0007 from './migrations/0007_volunteer_rota.js';
-import m0008 from './migrations/0008_pat_and_preregistration.js';
-import m0009 from './migrations/0009_newsletter_opt_in.js';
-import m0010 from './migrations/0010_customer_email.js';
+import m0007Rota from './migrations/0007_volunteer_rota.js';
+import m0007Switches from './migrations/0007_feature_switches.js';
+import m0008Pat from './migrations/0008_pat_and_preregistration.js';
+import m0008Listing from './migrations/0008_repaircafe_listing_prompt.js';
+import m0009Newsletter from './migrations/0009_newsletter_opt_in.js';
+import m0009Setup from './migrations/0009_setup_done_marker.js';
+import m0010Email from './migrations/0010_customer_email.js';
+import m0010Telemetry from './migrations/0010_telemetry_claim.js';
+import m0011Electrical from './migrations/0011_pre_registration_electrical.js';
 
 const MIGRATIONS: Array<{ id: string; sql: string }> = [
   { id: '0001_init', sql: m0001 },
   { id: '0002_display_token', sql: m0002 },
   { id: '0003_qwa_analytics', sql: m0003 },
-  { id: '0004_checkin_weight_first_visit', sql: m0004 },
+  { id: '0004_checkin_weight_first_visit', sql: m0004CheckinWeight },
   { id: '0005_exit_satisfaction', sql: m0005 },
   { id: '0006_session_card_number', sql: m0006 },
-  { id: '0007_volunteer_rota', sql: m0007 },
-  { id: '0008_pat_and_preregistration', sql: m0008 },
-  { id: '0009_newsletter_opt_in', sql: m0009 },
-  { id: '0010_customer_email', sql: m0010 },
+  { id: '0007_volunteer_rota', sql: m0007Rota },
+  { id: '0007_feature_switches', sql: m0007Switches },
+  { id: '0008_pat_and_preregistration', sql: m0008Pat },
+  { id: '0008_repaircafe_listing_prompt', sql: m0008Listing },
+  { id: '0009_newsletter_opt_in', sql: m0009Newsletter },
+  { id: '0009_setup_done_marker', sql: m0009Setup },
+  { id: '0010_customer_email', sql: m0010Email },
+  { id: '0010_telemetry_claim', sql: m0010Telemetry },
+  { id: '0011_pre_registration_electrical', sql: m0011Electrical },
 ];
 
 /** Split a migration into statements. Our SQL never puts ";" inside a string. */

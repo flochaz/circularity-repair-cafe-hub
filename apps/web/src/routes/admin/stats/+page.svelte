@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { api } from '$lib/api';
+  import { api, download } from '$lib/api';
   import { CalendarDays, Wrench, Users, Scale, Clock, CheckCircle2 } from 'lucide-svelte';
 
   type Range = '3m' | '6m' | '12m' | 'all';
@@ -16,8 +16,7 @@
     avgDurationMin: number;
     avgRepairsPerEvent: number;
     environmentalSavingKg: number;
-    totalWeightKg: number;
-    savedWeightKg: number;
+    fixedWeightKg: number;
     satisfactionRate: number | null;
     satisfactionCount: number;
   };
@@ -148,14 +147,22 @@
     return m === 0 ? `${h} hr` : `${h} hr ${m} min`;
   }
 
-  function exportCsv() {
-    window.location.href = `/api/admin/repairs/export.csv`;
+  let exportError = '';
+
+  async function exportCsv() {
+    exportError = '';
+    try {
+      await download('/api/admin/repairs/export.csv', 'repairs.csv');
+    } catch (err: any) {
+      exportError = err?.message ?? 'The export could not be downloaded. Please try again.';
+    }
   }
 </script>
 
 <div class="flex flex-wrap items-center justify-between gap-3">
   <h1 class="text-2xl font-bold">Statistics</h1>
   <button class="btn-secondary" on:click={exportCsv}>Export raw data (CSV)</button>
+  {#if exportError}<p class="text-sm text-rose-700">{exportError}</p>{/if}
 </div>
 
 <!-- Period selector. Applies to summary cards and the events table.
@@ -184,14 +191,14 @@
       <div class="flex items-center gap-2 text-slate-500 text-xs"><Wrench size={14} /> Items in</div>
       <p class="text-2xl font-bold mt-1">{overview.repairCount}</p>
       <p class="text-xs text-slate-400 mt-0.5">
-        {overview.completedCount} fixed{#if overview.totalWeightKg > 0} · {overview.totalWeightKg.toFixed(1)} kg{/if}
+        {overview.completedCount} fixed
       </p>
     </div>
     <div class="card p-4">
       <div class="flex items-center gap-2 text-slate-500 text-xs"><CheckCircle2 size={14} /> Success rate</div>
       <p class="text-2xl font-bold mt-1">{overview.successRate}%</p>
       <p class="text-xs text-slate-400 mt-0.5">
-        {overview.cannotRepairCount} couldn't fix{#if overview.satisfactionRate !== null} · {overview.satisfactionRate}% satisfied{/if}
+        {overview.cannotRepairCount} couldn't fix{#if overview.satisfactionRate !== null}, {overview.satisfactionRate}% satisfied{/if}
       </p>
     </div>
     <div class="card p-4">
@@ -206,7 +213,7 @@
     </div>
     <div class="card p-4">
       <div class="flex items-center gap-2 text-slate-500 text-xs"><Scale size={14} /> Objects saved</div>
-      <p class="text-2xl font-bold mt-1">{overview.savedWeightKg.toFixed(1)}<span class="text-sm font-normal text-slate-500"> kg</span></p>
+      <p class="text-2xl font-bold mt-1">{overview.fixedWeightKg.toFixed(1)}<span class="text-sm font-normal text-slate-500"> kg</span></p>
       <p class="text-xs text-slate-400 mt-0.5">weight of repaired items</p>
     </div>
   </div>

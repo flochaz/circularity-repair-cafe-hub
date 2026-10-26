@@ -102,7 +102,8 @@ volunteers and CO2 saved, with every session listed.
 - **Repair guides** from [iFixit](https://www.ifixit.com/api-docs), searchable
   from your own site.
 - **Maps** of every Repair Café in the world, and of the cafes near you, from
-  [repaircafe.org](https://www.repaircafe.org/en/api/).
+  [repaircafe.org](https://www.repaircafe.org/en/api/). The maps use free
+  [OpenFreeMap](https://openfreemap.org/) tiles, so there is no map key to set up.
 - **Linux Repair Cafe** (off until you switch it on): help people move an old
   computer to Linux instead of throwing it away, and record each install.
   See [docs/08-linux-repair-cafe.md](./docs/08-linux-repair-cafe.md).
@@ -133,10 +134,13 @@ git clone https://github.com/Zesty0wl/circularity-repair-cafe-hub.git
 cd circularity-repair-cafe-hub
 pnpm install
 pnpm --filter @circularity/cloudflare exec wrangler login
-pnpm cf:deploy --domain repair.example.org
+pnpm cf:deploy
 ```
 
-Then open your address, and the setup wizard starts.
+Then open the `workers.dev` address it prints, and the setup wizard starts.
+You do not need a domain name. You can add your own web address later, at any
+time. See
+[Later: add your own web address](./docs/install.md#later-add-your-own-web-address).
 
 ## Updating
 

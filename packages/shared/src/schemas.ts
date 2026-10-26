@@ -82,6 +82,14 @@ export const setupCompleteSchema = z.object({
   telemetry: z
     .object({ level: z.enum(['none', 'standard', 'community']) })
     .optional(),
+  // The cafe's own repaircafe.org listing, chosen in the wizard. Left out when
+  // the wizard could not reach the directory, so the admin is asked later.
+  repaircafeListing: z
+    .object({
+      slug: z.string().max(300).nullable(),
+      notListed: z.boolean().optional(),
+    })
+    .optional(),
 });
 
 export type SetupCompletePayload = z.infer<typeof setupCompleteSchema>;
@@ -299,14 +307,22 @@ export const userUpdateSchema = userCreateSchema.partial().extend({
   isActive: z.boolean().optional(),
 });
 
+/**
+ * The largest CO2 saving one repair can record, in kilograms. Far above any
+ * real item, but it stops a mistyped or made-up figure swamping the totals on
+ * the public pages and in the shared figures.
+ */
+export const MAX_CO2_SAVING_KG = 10_000;
+
 export const repairUpdateSchema = z.object({
   status: z.enum(['waiting', 'in_progress', 'completed', 'cannot_repair', 'awaiting_return', 'returned']).optional(),
   repairerId: z.string().uuid().nullable().optional(),
   outcomeNotes: z.string().max(2000).optional().nullable(),
   partsUsed: z.string().max(500).optional().nullable(),
-  environmentalSavingKg: z.number().nonnegative().optional().nullable(),
+  environmentalSavingKg: z.number().nonnegative().max(MAX_CO2_SAVING_KG).optional().nullable(),
   customerName: z.string().max(50).optional().nullable(),
   customerContact: z.string().max(100).optional().nullable(),
+  customerEmail: z.string().email().max(200).optional().nullable(),
   itemDescription: z.string().max(200).optional(),
   faultDescription: z.string().max(500).optional(),
   itemCategoryId: z.string().uuid().optional().nullable(),
@@ -440,6 +456,15 @@ export const cafeSettingsSchema = z.object({
   // The cafe's own listing on repaircafe.org. Admins may paste the full page
   // URL or just the slug; the server reduces it to a slug before saving.
   repaircafeSlug: z.string().max(300).optional().nullable().or(z.literal('')),
+  // The cafe's country as a 3-letter ISO code (GBR, FRA, NLD), for the Open
+  // Repair Data Standard export.
+  ordsCountry: z
+    .string()
+    .trim()
+    .regex(/^[A-Za-z]{3}$/, 'Use the 3-letter country code, such as GBR or FRA')
+    .optional()
+    .nullable()
+    .or(z.literal('')),
 });
 
 // ─────────────────────────── Volunteer sign-up board ───────────────────────────

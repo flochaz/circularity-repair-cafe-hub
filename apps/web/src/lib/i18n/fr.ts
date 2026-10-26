@@ -23,6 +23,11 @@ export const fr: Record<string, string> = {
   'Email address': 'E-mail',
   '(required)': '(obligatoire)',
   'Please check the email address': 'Vérifiez l’adresse e-mail',
+  'Is this your first visit to us? (optional)': 'Est-ce votre première visite chez nous ? (facultatif)',
+  'Is this their first visit?': 'Est-ce sa première visite ?',
+  'Card number': 'Numéro de carte',
+  'The visitor keeps card {number}, and we call them by that number. Write the job number on the item\'s tag, so we can match the item back to them.':
+    'Le visiteur garde la carte {number} et nous l’appelons par ce numéro. Écrivez le numéro de fiche sur l’étiquette de l’objet, pour que nous puissions le retrouver.',
   'Add your email above to receive the newsletter.': 'Indiquez votre e-mail ci-dessus pour recevoir la newsletter.',
   'Phone or email': 'Téléphone ou e-mail',
   '(only if you want us to contact you)': '(uniquement si vous souhaitez que nous vous contactions)',

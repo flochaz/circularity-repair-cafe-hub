@@ -2,6 +2,7 @@ import type { App } from '../../lib/router.js';
 import { db, execute } from '../../db/index.js';
 import { cafes } from '../../db/schema.js';
 import { sql } from 'drizzle-orm';
+import { MAX_REPAIR_MINUTES } from '@circularity/shared';
 import { linuxStatsForEvent } from '../../services/linux.js';
 import { addMonthsIso, localToday } from '../../lib/dates.js';
 
@@ -30,6 +31,16 @@ function rangeFilter(range: Range, column: string) {
 const DURATION_MIN = sql.raw('((rj.completed_at - rj.accepted_at) / 60000.0)');
 const DURATION_MIN_BARE = sql.raw('((completed_at - accepted_at) / 60000.0)');
 
+// Which repairs count towards repair times: taken on, finished, and done in
+// under MAX_REPAIR_MINUTES. One finished at a later session would otherwise
+// count the weeks in between, and a single one can turn an average of minutes
+// into hundreds of hours. The live board uses the same limit.
+const TIMED_WHERE = (p: string) =>
+  `${p}accepted_at IS NOT NULL AND ${p}completed_at IS NOT NULL AND ${p}completed_at > ${p}accepted_at ` +
+  `AND ${p}completed_at - ${p}accepted_at < ${MAX_REPAIR_MINUTES * 60_000}`;
+const TIMED = sql.raw(TIMED_WHERE('rj.'));
+const TIMED_BARE = sql.raw(TIMED_WHERE(''));
+
 export async function adminStatsRoutes(app: App): Promise<void> {
   // ── Period summary: events, repairs, success rate, volunteers ──────
   // Averages are computed over events that actually took place (status
@@ -48,12 +59,11 @@ export async function adminStatsRoutes(app: App): Promise<void> {
         COUNT(rj.id) FILTER (WHERE rj.status = 'returned') AS returned,
         COUNT(DISTINCT rj.repairer_id) FILTER (WHERE rj.repairer_id IS NOT NULL) AS repairer_count,
         COALESCE(SUM(rj.co2_saving_kg) FILTER (WHERE rj.status = 'completed'), 0) AS savings_kg,
-        COALESCE(SUM(rj.weight_kg), 0) AS weight_kg_total,
-        COALESCE(SUM(rj.weight_kg) FILTER (WHERE rj.status = 'completed'), 0) AS saved_weight_kg,
+        COALESCE(SUM(rj.weight_kg) FILTER (WHERE rj.status = 'completed'), 0) AS fixed_weight_kg,
         COUNT(rj.id) FILTER (WHERE rj.satisfaction = 'satisfied') AS satisfied,
         COUNT(rj.id) FILTER (WHERE rj.satisfaction = 'not_satisfied') AS not_satisfied,
         COALESCE(AVG(${DURATION_MIN})
-                 FILTER (WHERE rj.accepted_at IS NOT NULL AND rj.completed_at IS NOT NULL), 0) AS avg_duration_min
+                 FILTER (WHERE ${TIMED}), 0) AS avg_duration_min
       FROM events e
       LEFT JOIN repair_jobs rj ON rj.event_id = e.id
       WHERE e.status IN ('completed','active') ${filter}
@@ -77,12 +87,9 @@ export async function adminStatsRoutes(app: App): Promise<void> {
       avgDurationMin: Math.round(Number(r.avg_duration_min ?? 0)),
       avgRepairsPerEvent: eventCount > 0 ? Math.round((repairCount / eventCount) * 10) / 10 : 0,
       environmentalSavingKg: Number(r.savings_kg ?? 0),
-      // Total weight of items recorded, in kilograms. Zero when no cafe using
-      // this hub weighs items.
-      totalWeightKg: Math.round(Number(r.weight_kg_total ?? 0) * 100) / 100,
-      // Weight of the items that were actually repaired — the headline figure
-      // for a cafe that counts kilos saved rather than carbon.
-      savedWeightKg: Math.round(Number(r.saved_weight_kg ?? 0) * 100) / 100,
+      // The weight of the items that were fixed, in kilograms: what was kept
+      // out of the bin. Zero when the cafe does not weigh items.
+      fixedWeightKg: Math.round(Number(r.fixed_weight_kg ?? 0) * 100) / 100,
       // How visitors answered at the exit. Null when nobody answered, so a
       // cafe that does not ask never shows a meaningless figure.
       satisfactionRate: satisfied + notSatisfied > 0 ? Math.round((satisfied / (satisfied + notSatisfied)) * 100) : null,
@@ -133,7 +140,7 @@ export async function adminStatsRoutes(app: App): Promise<void> {
         COUNT(rj.id) FILTER (WHERE rj.status = 'cannot_repair') AS cannot_repair,
         COUNT(DISTINCT rj.repairer_id) FILTER (WHERE rj.repairer_id IS NOT NULL) AS repairer_count,
         COALESCE(AVG(${DURATION_MIN})
-                 FILTER (WHERE rj.accepted_at IS NOT NULL AND rj.completed_at IS NOT NULL), 0) AS avg_duration_min
+                 FILTER (WHERE ${TIMED}), 0) AS avg_duration_min
       FROM events e
       JOIN venues v ON v.id = e.venue_id
       LEFT JOIN repair_jobs rj ON rj.event_id = e.id
@@ -190,9 +197,9 @@ export async function adminStatsRoutes(app: App): Promise<void> {
         COALESCE(SUM(co2_saving_kg) FILTER (WHERE status = 'completed'), 0) AS savings_kg,
         COALESCE(SUM(weight_kg) FILTER (WHERE status = 'completed'), 0) AS saved_weight_kg,
         COALESCE(AVG(${DURATION_MIN_BARE})
-                 FILTER (WHERE accepted_at IS NOT NULL AND completed_at IS NOT NULL), 0) AS avg_duration_min,
+                 FILTER (WHERE ${TIMED_BARE}), 0) AS avg_duration_min,
         COALESCE(SUM(${DURATION_MIN_BARE})
-                 FILTER (WHERE accepted_at IS NOT NULL AND completed_at IS NOT NULL), 0) AS total_duration_min
+                 FILTER (WHERE ${TIMED_BARE}), 0) AS total_duration_min
       FROM repair_jobs WHERE event_id = ${id}
     `);
     const t: any = totalsRows.rows[0] ?? {};
@@ -206,7 +213,7 @@ export async function adminStatsRoutes(app: App): Promise<void> {
         COUNT(rj.id) AS count,
         COUNT(rj.id) FILTER (WHERE rj.status = 'completed') AS completed,
         COALESCE(AVG(${DURATION_MIN})
-                 FILTER (WHERE rj.accepted_at IS NOT NULL AND rj.completed_at IS NOT NULL), 0) AS avg_duration_min
+                 FILTER (WHERE ${TIMED}), 0) AS avg_duration_min
       FROM repair_jobs rj
       JOIN users u ON u.id = rj.repairer_id
       WHERE rj.event_id = ${id}
@@ -237,7 +244,9 @@ export async function adminStatsRoutes(app: App): Promise<void> {
         rj.item_brand AS item_brand,
         rj.status,
         rj.co2_saving_kg AS env_saving,
-        ${DURATION_MIN} AS duration_min,
+        CASE WHEN ${TIMED} THEN ${DURATION_MIN} END AS duration_min,
+        CASE WHEN rj.accepted_at IS NOT NULL AND rj.completed_at IS NOT NULL AND NOT (${TIMED}) THEN 1 ELSE 0 END
+          AS finished_later,
         u.display_name AS repairer_name,
         sc.name AS category_name,
         sc.icon AS category_icon,
@@ -303,6 +312,9 @@ export async function adminStatsRoutes(app: App): Promise<void> {
         status: r.status,
         environmentalSavingKg: r.env_saving == null ? null : Number(r.env_saving),
         durationMin: r.duration_min == null ? null : Math.round(Number(r.duration_min)),
+        // Finished, but it took 4 hours or more, so it was most likely closed
+        // after the session. It has no repair time.
+        finishedLater: Number(r.finished_later) === 1,
         repairerName: r.repairer_name,
         categoryName: r.category_name,
         categoryIcon: r.category_icon,
