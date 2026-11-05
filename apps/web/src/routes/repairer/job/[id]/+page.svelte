@@ -25,7 +25,7 @@
   import CardNumber from '$lib/components/CardNumber.svelte';
   import { clockTime, firstName, minutesBetween, statusLabel, formatDuration } from '$lib/staff/queue';
   import { PAT_RESULTS, type PatResult } from '@circularity/shared';
-  import { ArrowLeft, Camera as CameraIcon, CheckCircle2, ChevronDown, NotebookPen, Package, User, XCircle, Zap } from 'lucide-svelte';
+  import { ArrowLeft, Camera as CameraIcon, CheckCircle2, ChevronDown, NotebookPen, Package, Pencil, User, XCircle, Zap } from 'lucide-svelte';
   import { t, tNow } from '$lib/i18n';
 
   $: id = $page.params.id;
@@ -83,6 +83,24 @@
   let assignId = '';
   let assigning = false;
 
+  // Correcting the details recorded at registration, whatever the status.
+  let editing = false;
+  let editBusy = false;
+  let editError = '';
+  let editCategories: Array<{ id: string; name: string }> = [];
+  let edit = {
+    itemDescription: '',
+    itemBrand: '',
+    itemCategoryId: '',
+    faultDescription: '',
+    customerName: '',
+    customerContact: '',
+    customerEmail: '',
+    cardNumber: '' as string | number,
+    weightKg: '' as string | number,
+    firstVisit: '' as '' | 'yes' | 'no',
+  };
+
   $: myId = $auth?.user.id ?? null;
   $: status = detail?.job.status as string | undefined;
   $: isMine = !!detail && detail.job.repairerId === myId && status === 'in_progress';
@@ -92,6 +110,14 @@
   // The result that will count: one chosen now, or one recorded earlier.
   $: patEffective = patChoice ?? (changingPat ? null : pat?.result ?? null);
   $: patBlocksFix = outcome === 'completed' && patNeeded && (!patEffective || patEffective === 'fail');
+  // Keep the job's own category in the picker even if the cafe has since
+  // hidden that category, so opening the form cannot silently clear it.
+  $: editCategoryOptions = (() => {
+    const current = detail?.category;
+    return current && !editCategories.some((c) => c.id === current.id)
+      ? [...editCategories, current].sort((a, b) => a.name.localeCompare(b.name))
+      : editCategories;
+  })();
 
   async function load() {
     try {
@@ -133,6 +159,11 @@
       /* the drop-down just stays empty */
     }
     try {
+      editCategories = await api<Array<{ id: string; name: string }>>('/api/public/skill-categories', { autoRefresh: false });
+    } catch {
+      /* the category picker just keeps the job's own category */
+    }
+    try {
       const res = await fetch('/api/public/co2-factors');
       if (!res.ok) return;
       const body = (await res.json()) as { enabled: boolean; displacementRate: number; factors: typeof factors };
@@ -171,6 +202,86 @@
       error = err?.message ?? tNow('Could not assign this repair');
     } finally {
       assigning = false;
+    }
+  }
+
+  /** Open the form that corrects the record made at check-in. */
+  function startEdit() {
+    if (!detail) return;
+    edit = {
+      itemDescription: detail.job.itemDescription ?? '',
+      itemBrand: detail.job.itemBrand ?? '',
+      itemCategoryId: detail.job.itemCategoryId ?? '',
+      faultDescription: detail.job.faultDescription ?? '',
+      customerName: detail.job.customerName ?? '',
+      customerContact: detail.job.customerContact ?? '',
+      customerEmail: detail.job.customerEmail ?? '',
+      cardNumber: detail.job.cardNumber ?? '',
+      weightKg: detail.job.weightKg ?? '',
+      firstVisit: detail.job.isFirstVisit === true ? 'yes' : detail.job.isFirstVisit === false ? 'no' : '',
+    };
+    editError = '';
+    editing = true;
+  }
+
+  function cancelEdit() {
+    editing = false;
+    editError = '';
+  }
+
+  async function saveEdit() {
+    editError = '';
+    if (!edit.itemDescription.trim()) {
+      editError = tNow('Please describe the item');
+      return;
+    }
+    if (!edit.faultDescription.trim()) {
+      editError = tNow("Please describe what's wrong with it");
+      return;
+    }
+    const email = edit.customerEmail.trim();
+    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      editError = tNow('Please check the email address');
+      return;
+    }
+    const rawCard = edit.cardNumber;
+    const cardNumber = rawCard === '' || rawCard === null || rawCard === undefined ? null : Number(rawCard);
+    if (cardNumber !== null && (!Number.isInteger(cardNumber) || cardNumber < 1 || cardNumber > 999)) {
+      editError = tNow('Card numbers run from 1 to 999');
+      return;
+    }
+    const rawWeight = edit.weightKg;
+    const weightKg =
+      rawWeight === '' || rawWeight === null || rawWeight === undefined
+        ? null
+        : Number(String(rawWeight).replace(',', '.'));
+    if (weightKg !== null && (!Number.isFinite(weightKg) || weightKg < 0)) {
+      editError = tNow('Please check the weight');
+      return;
+    }
+    editBusy = true;
+    try {
+      await api(`/api/repairer/jobs/${id}`, {
+        method: 'PATCH',
+        json: {
+          itemDescription: edit.itemDescription.trim(),
+          itemBrand: edit.itemBrand.trim() || null,
+          itemCategoryId: edit.itemCategoryId || null,
+          faultDescription: edit.faultDescription.trim(),
+          customerName: edit.customerName.trim() || null,
+          customerContact: edit.customerContact.trim() || null,
+          customerEmail: email || null,
+          cardNumber,
+          weightKg,
+          isFirstVisit: edit.firstVisit === 'yes' ? true : edit.firstVisit === 'no' ? false : null,
+        },
+      });
+      await load();
+      editing = false;
+    } catch (err: any) {
+      editError = err?.message ?? tNow('Could not save those changes');
+    } finally {
+      editBusy = false;
     }
   }
 
@@ -302,6 +413,9 @@
           <div class="flex flex-col items-end gap-1 shrink-0">
             <span class="badge badge-{detail.job.status}">{statusLabel(detail.job.status)}</span>
             {#if pat}<PatBadge needed={pat.needed} result={pat.result} />{/if}
+            {#if !editing}
+              <button type="button" class="btn-secondary btn-sm mt-1" on:click={startEdit}><Pencil size={14} /> {$t('Edit details')}</button>
+            {/if}
           </div>
         </div>
         <dl class="mt-4 grid sm:grid-cols-2 gap-3 text-sm">
@@ -325,10 +439,84 @@
         </dl>
       </header>
 
-      <section class="card p-5">
-        <h2 class="font-semibold">{$t('What is wrong')}</h2>
-        <p class="mt-2 text-slate-700 whitespace-pre-line">{detail.job.faultDescription}</p>
-      </section>
+      {#if editing}
+        <section class="card p-5 space-y-4">
+          <div class="flex items-center justify-between gap-2">
+            <h2 class="font-semibold">{$t('Edit details')}</h2>
+            <button type="button" class="btn-ghost btn-sm" disabled={editBusy} on:click={cancelEdit}>{$t('Cancel')}</button>
+          </div>
+          <div class="grid sm:grid-cols-2 gap-3">
+            <div class="sm:col-span-2">
+              <label class="label" for="edit-item">{$t('Item description')}</label>
+              <input id="edit-item" class="input" maxlength="200" bind:value={edit.itemDescription} />
+            </div>
+            <div>
+              <label class="label" for="edit-brand">{$t('Brand')} <span class="font-normal text-slate-400">{$t('(optional)')}</span></label>
+              <input id="edit-brand" class="input" maxlength="100" bind:value={edit.itemBrand} />
+            </div>
+            <div>
+              <label class="label" for="edit-cat">{$t('Category')} <span class="font-normal text-slate-400">{$t('(optional)')}</span></label>
+              <select id="edit-cat" class="input" bind:value={edit.itemCategoryId}>
+                <option value="">{$t('No category')}</option>
+                {#each editCategoryOptions as c (c.id)}<option value={c.id}>{$t(c.name)}</option>{/each}
+              </select>
+            </div>
+          </div>
+          <div>
+            <label class="label" for="edit-fault">{$t("What's wrong with it?")}</label>
+            <textarea id="edit-fault" class="input" rows="3" maxlength="500" bind:value={edit.faultDescription}></textarea>
+          </div>
+          <fieldset class="border-t border-slate-200 pt-4">
+            <legend class="text-sm font-semibold text-slate-700">{$t('Visitor')}</legend>
+            <div class="mt-3 grid sm:grid-cols-2 gap-3">
+              <div>
+                <label class="label" for="edit-name">{$t('Visitor name')} <span class="font-normal text-slate-400">{$t('(optional)')}</span></label>
+                <input id="edit-name" class="input" maxlength="100" bind:value={edit.customerName} />
+              </div>
+              <div>
+                <label class="label" for="edit-phone">{$t('Phone number')} <span class="font-normal text-slate-400">{$t('(optional)')}</span></label>
+                <input id="edit-phone" class="input" type="tel" maxlength="100" bind:value={edit.customerContact} />
+              </div>
+              <div>
+                <label class="label" for="edit-email">{$t('Email address')} <span class="font-normal text-slate-400">{$t('(optional)')}</span></label>
+                <input id="edit-email" class="input" type="email" maxlength="200" bind:value={edit.customerEmail} />
+              </div>
+              {#if $cafe?.cardNumbersEnabled || (edit.cardNumber !== '' && edit.cardNumber !== null)}
+                <div>
+                  <label class="label" for="edit-card">{$t('Card number')} <span class="font-normal text-slate-400">{$t('(optional)')}</span></label>
+                  <input id="edit-card" class="input" type="number" min="1" max="999" placeholder={$t('No card')} bind:value={edit.cardNumber} />
+                </div>
+              {/if}
+              {#if $cafe?.weighItemsEnabled || (edit.weightKg !== '' && edit.weightKg !== null)}
+                <div>
+                  <label class="label" for="edit-weight">{$t('Weight in kg')} <span class="font-normal text-slate-400">{$t('(optional)')}</span></label>
+                  <input id="edit-weight" class="input" type="number" min="0" step="0.001" bind:value={edit.weightKg} />
+                </div>
+              {/if}
+              {#if $cafe?.askFirstVisitEnabled || edit.firstVisit !== ''}
+                <div>
+                  <label class="label" for="edit-first">{$t('First visit?')}</label>
+                  <select id="edit-first" class="input" bind:value={edit.firstVisit}>
+                    <option value="">{$t('Not answered')}</option>
+                    <option value="yes">{$t('Yes')}</option>
+                    <option value="no">{$t('No')}</option>
+                  </select>
+                </div>
+              {/if}
+            </div>
+          </fieldset>
+          {#if editError}<p class="text-sm text-rose-700">{editError}</p>{/if}
+          <div class="flex justify-end gap-2">
+            <button type="button" class="btn-ghost" disabled={editBusy} on:click={cancelEdit}>{$t('Cancel')}</button>
+            <button type="button" class="btn-primary" disabled={editBusy} on:click={saveEdit}>{editBusy ? $t('Saving…') : $t('Save changes')}</button>
+          </div>
+        </section>
+      {:else}
+        <section class="card p-5">
+          <h2 class="font-semibold">{$t('What is wrong')}</h2>
+          <p class="mt-2 text-slate-700 whitespace-pre-line">{detail.job.faultDescription}</p>
+        </section>
+      {/if}
 
       {#if detail.preRegistration?.researchNotes}
         <section class="card p-5">

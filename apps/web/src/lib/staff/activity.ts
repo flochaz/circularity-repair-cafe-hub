@@ -32,6 +32,7 @@ export function describeActivity(a: any): { who: string | null; rest: string } {
     case 'repair.awaiting_return': return { who, rest: `paused ${item} until the visitor brings a part` };
     case 'display.link_replaced': return { who, rest: 'replaced the waiting-room screen link' };
     case 'repair.admin_updated': return { who, rest: `updated ${item}` };
+    case 'repair.edited': return { who, rest: `edited ${item}` };
     case 'repair.deleted': return { who, rest: `deleted ${item}` };
     case 'repair.pii_purged': return { who: null, rest: `Personal details were removed from ${item}` };
     case 'repair.pat_recorded': return { who, rest: `recorded a PAT test for ${item}` };

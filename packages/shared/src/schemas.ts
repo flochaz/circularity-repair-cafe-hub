@@ -187,6 +187,24 @@ export const assistedCheckInSchema = z
 
 export type AssistedCheckInPayload = z.infer<typeof assistedCheckInSchema>;
 
+// A member of staff correcting the details of a repair after it was registered.
+// It deliberately leaves the status, the repairer and the outcome alone: those
+// have their own actions, and this form is only about the original record.
+export const jobEditSchema = z.object({
+  itemDescription: z.string().min(1).max(200),
+  faultDescription: z.string().min(1).max(500),
+  itemBrand: z.string().max(100).optional().nullable(),
+  itemCategoryId: z.string().uuid().optional().nullable(),
+  customerName: z.string().max(100).optional().nullable(),
+  customerContact: z.string().max(100).optional().nullable(),
+  customerEmail: z.string().email().max(200).optional().nullable(),
+  weightKg: z.number().nonnegative().max(1000).optional().nullable(),
+  isFirstVisit: z.boolean().optional().nullable(),
+  cardNumber: z.number().int().positive().max(999).optional().nullable(),
+});
+
+export type JobEditPayload = z.infer<typeof jobEditSchema>;
+
 // Pre-registration asks for exactly what check-in asks for, so it uses the same
 // rules: a name and consent, or the token from an item already registered.
 export const preRegistrationSchema = checkInSubmitSchema;

@@ -613,6 +613,16 @@ export const fr: Record<string, string> = {
   Vacuum: 'Aspirateur',
   'Watch/clock': 'Montre/horloge',
 
+  // ── Editing a repair's details ─────────────────────────────────────
+  'Edit details': 'Modifier les détails',
+  'Visitor name': 'Nom du visiteur',
+  Category: 'Catégorie',
+  'No category': 'Aucune catégorie',
+  'Not answered': 'Non renseigné',
+  'Could not save those changes': 'Impossible d’enregistrer ces modifications',
+  'Card numbers run from 1 to 999': 'Les numéros de carte vont de 1 à 999',
+  'Please check the weight': 'Vérifiez le poids',
+
   // ── Volunteer station ──────────────────────────────────────────────
   'Volunteer station': 'Poste bénévole',
   'Who are you?': 'Qui êtes-vous ?',

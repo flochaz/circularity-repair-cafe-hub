@@ -5,6 +5,7 @@ import { and, asc, count, desc, eq, sql } from 'drizzle-orm';
 import {
   MAX_CO2_SAVING_KG,
   assistedCheckInSchema,
+  jobEditSchema,
   jobFeedbackSchema,
   needsPatTest,
   patRecordSchema,
@@ -13,7 +14,7 @@ import {
 import { cafeFeatures } from '../services/preRegistration.js';
 import { saveValidatedImage } from '../services/imageUpload.js';
 import { withJobNumber } from '../services/jobNumber.js';
-import { cardInUse, cardInUseError } from '../services/cardNumbers.js';
+import { cardInUse, cardInUseError, holdsCard } from '../services/cardNumbers.js';
 import { randomToken } from '../utils/tokens.js';
 import { audit } from '../utils/audit.js';
 import { repairerSummary } from '../utils/users.js';
@@ -383,6 +384,59 @@ export async function repairerRoutes(app: App): Promise<void> {
       .limit(1);
 
     return { ...rows[0], job: withoutVisitorToken(job), images, pat, preRegistration: pre ?? null };
+  });
+
+  // Correct the details of an existing repair, whatever its status. This is
+  // the record as registered: item, fault, visitor and card. Status, repairer
+  // and outcome are changed through their own actions.
+  app.patch('/api/repairer/jobs/:id', async (request, reply) => {
+    const { id } = request.params as { id: string };
+    const me = request.auth!;
+    const parsed = jobEditSchema.safeParse(request.body);
+    if (!parsed.success) {
+      reply.code(400).send({ error: 'Validation failed', code: 'validation/failed', details: parsed.error.flatten() });
+      return;
+    }
+    const data = parsed.data;
+    const [existing] = await db.select().from(repairJobs).where(eq(repairJobs.id, id)).limit(1);
+    if (!existing) {
+      reply.code(404).send({ error: 'Job not found', code: 'job/not_found' });
+      return;
+    }
+    const cardNumber = data.cardNumber ?? null;
+    // Only a job that still holds its card can clash with another open job.
+    // A finished repair keeps its number as history, like the admin edit.
+    if (cardNumber != null && holdsCard(existing.status) && (await cardInUse(existing.eventId, cardNumber, id))) {
+      reply.code(409).send(cardInUseError(cardNumber));
+      return;
+    }
+    const [updated] = await db
+      .update(repairJobs)
+      .set({
+        itemDescription: data.itemDescription.trim(),
+        faultDescription: data.faultDescription.trim(),
+        itemBrand: data.itemBrand?.trim() || null,
+        itemCategoryId: data.itemCategoryId ?? null,
+        customerName: data.customerName?.trim() || null,
+        customerContact: data.customerContact?.trim() || null,
+        customerEmail: data.customerEmail?.trim().toLowerCase() || null,
+        weightKg: data.weightKg != null ? String(data.weightKg) : null,
+        isFirstVisit: data.isFirstVisit ?? null,
+        cardNumber,
+        updatedAt: new Date(),
+      })
+      .where(eq(repairJobs.id, id))
+      .returning();
+    await audit({
+      request,
+      actorId: me.sub,
+      actorType: me.role,
+      action: 'repair.edited',
+      entityType: 'repair_job',
+      entityId: id,
+      metadata: { status: existing.status, cardNumber },
+    });
+    return withoutVisitorToken(updated);
   });
 
   // ── PAT testing ────────────────────────────────────────────────────────
