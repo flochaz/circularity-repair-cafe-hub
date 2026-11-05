@@ -463,9 +463,9 @@
                     <select id="ctype" class="input" bind:value={co2FactorId}>
                       <option value={null}>{$t('Not recorded')}</option>
                       {#each factorGroups as group}
-                        <optgroup label={group.name}>
+                        <optgroup label={$t(group.name)}>
                           {#each group.types as type (type.id)}
-                            <option value={type.id}>{type.label}</option>
+                            <option value={type.id}>{$t(type.label)}</option>
                           {/each}
                         </optgroup>
                       {/each}

@@ -601,7 +601,7 @@
                     <span class="icon-chip" style="background-color: {cat.colour}">
                       <Icon icon={categoryIcon(cat.icon, cat.name)} width="24" height="24" />
                     </span>
-                    <span class="block mt-2 font-medium text-base">{cat.name}</span>
+                    <span class="block mt-2 font-medium text-base">{$t(cat.name)}</span>
                   </button>
                 {/each}
               </div>
@@ -624,7 +624,7 @@
                       class="type-chip {co2FactorId === type.id ? 'is-picked' : ''}"
                       on:click={() => (co2FactorId = co2FactorId === type.id ? null : type.id)}
                     >
-                      {type.label}
+                      {$t(type.label)}
                     </button>
                   {/each}
                 </div>
