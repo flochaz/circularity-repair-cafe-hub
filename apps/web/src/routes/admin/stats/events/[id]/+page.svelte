@@ -5,7 +5,7 @@
   import CardNumber from '$lib/components/CardNumber.svelte';
   import Icon from '@iconify/svelte';
   import { categoryIcon } from '$lib/categoryIcon';
-  import { ArrowLeft, Wrench, CheckCircle2, XCircle, PackageX, Hourglass, Clock, Users, Scale, Laptop } from 'lucide-svelte';
+  import { ArrowLeft, Wrench, CheckCircle2, XCircle, PackageX, Hourglass, Clock, Users, Scale, Laptop, Euro } from 'lucide-svelte';
 
   type Status = 'waiting' | 'in_progress' | 'completed' | 'cannot_repair' | 'awaiting_return' | 'returned';
 
@@ -31,6 +31,7 @@
       totalDurationMin: number;
       environmentalSavingKg: number;
       savedWeightKg: number;
+      donations: number;
     };
     /** Computers seen here, when the cafe offers Linux help. Null otherwise. */
     linux: {
@@ -118,7 +119,7 @@
   </div>
 
   <!-- Totals -->
-  <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mt-4">
+  <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mt-4">
     <div class="card p-4">
       <div class="flex items-center gap-2 text-slate-500 text-xs"><Wrench size={14} /> Items in</div>
       <p class="text-2xl font-bold mt-1">{detail.totals.repairCount}</p>
@@ -146,6 +147,11 @@
       <div class="flex items-center gap-2 text-slate-500 text-xs"><Scale size={14} /> Objects saved</div>
       <p class="text-2xl font-bold mt-1">{detail.totals.savedWeightKg.toFixed(1)}<span class="text-sm font-normal text-slate-500"> kg</span></p>
       <p class="text-xs text-slate-400 mt-0.5">weight of repaired items</p>
+    </div>
+    <div class="card p-4">
+      <div class="flex items-center gap-2 text-slate-500 text-xs"><Euro size={14} /> Donations</div>
+      <p class="text-2xl font-bold mt-1">€{detail.totals.donations.toFixed(2)}</p>
+      <p class="text-xs text-slate-400 mt-0.5">given at the exit</p>
     </div>
   </div>
 

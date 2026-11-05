@@ -172,6 +172,9 @@ export async function adminRepairsRoutes(app: App): Promise<void> {
     if (data.cardReturned !== undefined) {
       update.cardReturnedAt = data.cardReturned ? new Date() : null;
     }
+    if (data.donationAmount !== undefined) {
+      update.donationAmount = data.donationAmount === null ? null : data.donationAmount.toFixed(2);
+    }
     // Stamp completed_at only when the job actually *transitions* into a terminal
     // state (completed / cannot_repair). Re-saving an already-terminal job (e.g.
     // to tweak notes) must NOT push completed_at forward — that inflated the
@@ -239,6 +242,7 @@ export async function adminRepairsRoutes(app: App): Promise<void> {
         fault: repairJobs.faultDescription,
         status: repairJobs.status,
         cardNumber: repairJobs.cardNumber,
+        donationAmount: repairJobs.donationAmount,
         repairer: users.displayName,
         outcomeNotes: repairJobs.outcomeNotes,
         satisfaction: repairJobs.satisfaction,
@@ -256,7 +260,7 @@ export async function adminRepairsRoutes(app: App): Promise<void> {
       .leftJoin(users, eq(users.id, repairJobs.repairerId))
       .leftJoin(patTester, eq(patTester.id, repairJobs.patTestedBy))
       .orderBy(desc(repairJobs.createdAt));
-    const headers = ['jobNumber', 'cardNumber', 'eventDate', 'eventName', 'customerName', 'itemDescription', 'category', 'brand', 'weightKg', 'isFirstVisit', 'fault', 'status', 'repairer', 'outcomeNotes', 'satisfaction', 'satisfactionComment', 'environmentalSavingKg', 'createdAt', 'completedAt'];
+    const headers = ['jobNumber', 'cardNumber', 'donationAmount', 'eventDate', 'eventName', 'customerName', 'itemDescription', 'category', 'brand', 'weightKg', 'isFirstVisit', 'fault', 'status', 'repairer', 'outcomeNotes', 'satisfaction', 'satisfactionComment', 'environmentalSavingKg', 'createdAt', 'completedAt'];
     // The PAT columns only appear while the cafe does PAT tests, so the file
     // is the same as before for everyone else.
     if ((await cafeFeatures()).patTestingEnabled) headers.push('patResult', 'patTestedAt', 'patTestedBy');

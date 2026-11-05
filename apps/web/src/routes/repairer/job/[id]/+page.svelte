@@ -76,6 +76,10 @@
   /** Whether the numbered card has been handed back at the exit. */
   let cardReturned = false;
   let savingCardReturn = false;
+  /** Money given at the exit, as typed. */
+  let donationInput: string | number = '';
+  let savingDonation = false;
+  let donationError = '';
   /** The PAT result chosen on this page, saved with the repair. */
   let patChoice: PatResult | null = null;
   let patNotes = '';
@@ -133,6 +137,7 @@
       assignId = detail.job.repairerId ?? '';
       satisfaction = detail.job.satisfaction ?? '';
       cardReturned = detail.job.cardReturnedAt != null;
+      donationInput = detail.job.donationAmount != null ? Number(detail.job.donationAmount).toFixed(2) : '';
       if (detail.job.satisfactionComment) satisfactionComment = detail.job.satisfactionComment;
     } catch (err: any) {
       loadError =
@@ -373,6 +378,28 @@
       await load();
     } finally {
       savingCardReturn = false;
+    }
+  }
+
+  /** Money the visitor gives at the exit. */
+  async function saveDonation() {
+    donationError = '';
+    const amount = donationInput === '' || donationInput === null ? null : Number(donationInput);
+    if (amount !== null && (!Number.isFinite(amount) || amount < 0 || amount > 10000)) {
+      donationError = tNow('Please check the donation amount');
+      return;
+    }
+    savingDonation = true;
+    try {
+      await api(`/api/repairer/jobs/${id}/donation`, {
+        method: 'PATCH',
+        json: { amount },
+      });
+      await load();
+    } catch (err: any) {
+      donationError = err?.message ?? tNow('Could not save the donation');
+    } finally {
+      savingDonation = false;
     }
   }
 
@@ -782,6 +809,28 @@
               </label>
             </div>
           {/if}
+          <form class="pt-3 mt-1 border-t border-slate-100" on:submit|preventDefault={saveDonation}>
+            <label class="label" for="donation">{$t('Donation (€)')}</label>
+            <div class="flex gap-2">
+              <input
+                id="donation"
+                class="input"
+                type="number"
+                min="0"
+                max="10000"
+                step="0.01"
+                inputmode="decimal"
+                placeholder={$t('Amount')}
+                bind:value={donationInput}
+                disabled={savingDonation}
+              />
+              <button type="submit" class="btn-secondary shrink-0" disabled={savingDonation}>
+                {savingDonation ? $t('Saving…') : $t('Save')}
+              </button>
+            </div>
+            <p class="mt-1 text-xs text-slate-500">{$t('Money given at the exit, if any.')}</p>
+            {#if donationError}<p class="mt-1 text-sm text-rose-700">{donationError}</p>{/if}
+          </form>
           {#if $cafe?.askSatisfactionEnabled}
           <div class="pt-3 mt-1 border-t border-slate-100">
             <p class="text-sm font-medium text-slate-700">{$t('At the exit, was the visitor satisfied?')}</p>

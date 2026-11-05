@@ -37,6 +37,7 @@ import m0011Electrical from './migrations/0011_pre_registration_electrical.js';
 import m0012Categories from './migrations/0012_hide_rare_categories.js';
 import m0013Station from './migrations/0013_volunteer_station.js';
 import m0014CardReturned from './migrations/0014_card_returned.js';
+import m0015Donation from './migrations/0015_donation_amount.js';
 
 const MIGRATIONS: Array<{ id: string; sql: string }> = [
   { id: '0001_init', sql: m0001 },
@@ -57,6 +58,7 @@ const MIGRATIONS: Array<{ id: string; sql: string }> = [
   { id: '0012_hide_rare_categories', sql: m0012Categories },
   { id: '0013_volunteer_station', sql: m0013Station },
   { id: '0014_card_returned', sql: m0014CardReturned },
+  { id: '0015_donation_amount', sql: m0015Donation },
 ];
 
 /** Split a migration into statements. Our SQL never puts ";" inside a string. */

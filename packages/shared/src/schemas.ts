@@ -205,6 +205,13 @@ export const jobEditSchema = z.object({
 
 export type JobEditPayload = z.infer<typeof jobEditSchema>;
 
+// Money the visitor gives at the exit. Null clears it.
+export const jobDonationSchema = z.object({
+  amount: z.number().nonnegative().max(10000).nullable(),
+});
+
+export type JobDonationPayload = z.infer<typeof jobDonationSchema>;
+
 // Pre-registration asks for exactly what check-in asks for, so it uses the same
 // rules: a name and consent, or the token from an item already registered.
 export const preRegistrationSchema = checkInSubmitSchema;
@@ -352,6 +359,8 @@ export const repairUpdateSchema = z.object({
   cardNumber: z.number().int().positive().max(999).optional().nullable(),
   /** The visitor handed the card back at the exit. */
   cardReturned: z.boolean().optional(),
+  /** Money given at the exit, in euros. */
+  donationAmount: z.number().nonnegative().max(10000).optional().nullable(),
 });
 
 // Recording how the visitor said the repair went, at the exit. Both fields are

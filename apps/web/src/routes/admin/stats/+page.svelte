@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { api, download } from '$lib/api';
-  import { CalendarDays, Wrench, Users, Scale, Clock, CheckCircle2 } from 'lucide-svelte';
+  import { CalendarDays, Wrench, Users, Scale, Clock, CheckCircle2, Euro } from 'lucide-svelte';
 
   type Range = '3m' | '6m' | '12m' | 'all';
   type Overview = {
@@ -17,6 +17,7 @@
     avgRepairsPerEvent: number;
     environmentalSavingKg: number;
     fixedWeightKg: number;
+    donations: number;
     satisfactionRate: number | null;
     satisfactionCount: number;
   };
@@ -181,7 +182,7 @@
 </div>
 
 {#if overview}
-  <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mt-4">
+  <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mt-4">
     <div class="card p-4">
       <div class="flex items-center gap-2 text-slate-500 text-xs"><CalendarDays size={14} /> Events</div>
       <p class="text-2xl font-bold mt-1">{overview.eventCount}</p>
@@ -215,6 +216,11 @@
       <div class="flex items-center gap-2 text-slate-500 text-xs"><Scale size={14} /> Objects saved</div>
       <p class="text-2xl font-bold mt-1">{overview.fixedWeightKg.toFixed(1)}<span class="text-sm font-normal text-slate-500"> kg</span></p>
       <p class="text-xs text-slate-400 mt-0.5">weight of repaired items</p>
+    </div>
+    <div class="card p-4">
+      <div class="flex items-center gap-2 text-slate-500 text-xs"><Euro size={14} /> Donations</div>
+      <p class="text-2xl font-bold mt-1">€{overview.donations.toFixed(2)}</p>
+      <p class="text-xs text-slate-400 mt-0.5">given at the exit</p>
     </div>
   </div>
 {/if}

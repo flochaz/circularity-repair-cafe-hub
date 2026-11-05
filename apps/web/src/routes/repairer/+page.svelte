@@ -16,7 +16,7 @@
   import PatBadge from '$lib/components/PatBadge.svelte';
   import CardNumber from '$lib/components/CardNumber.svelte';
   import { WAIT_TONE_CLASS, firstName, minutesBetween, sessionTimes, statusLabel, waitTone, formatAgo, formatDuration } from '$lib/staff/queue';
-  import { CalendarClock, Camera, CheckCircle2, ChevronRight, Clock, RefreshCw, UserPlus, Wrench, X } from 'lucide-svelte';
+  import { CalendarClock, Camera, CheckCircle2, ChevronRight, Clock, Euro, RefreshCw, UserPlus, Wrench, X } from 'lucide-svelte';
   import { currentLocale, t, tNow } from '$lib/i18n';
 
   interface Job {
@@ -43,6 +43,7 @@
   interface ActiveData {
     event: { id: string; name: string; venueName: string; startTime: string; endTime: string } | null;
     jobs: Job[];
+    donationsTotal: number;
   }
   interface NextSession {
     id: string;
@@ -163,6 +164,14 @@
     return new Date(`${iso}T12:00:00Z`).toLocaleDateString(locale, { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC' });
   }
 
+  /** Money in the cafe's currency. The fork's cafes are in the eurozone. */
+  function money(value: number): string {
+    return new Intl.NumberFormat(currentLocale() === 'fr' ? 'fr-FR' : 'en-GB', {
+      style: 'currency',
+      currency: 'EUR',
+    }).format(value || 0);
+  }
+
   const OUTCOME_WORDS: Record<string, string> = {
     completed: 'marked as fixed. Nice work.',
     cannot_repair: 'marked as could not fix. Thanks for trying.',
@@ -216,7 +225,7 @@
     </div>
   </header>
 
-  <dl class="mt-5 grid grid-cols-3 gap-2 md:gap-3">
+  <dl class="mt-5 grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-3">
     <div class="card px-4 py-3">
       <dt class="text-xs text-slate-500 flex items-center gap-1.5"><span class="status-dot status-dot-waiting"></span> {$t('Waiting')}</dt>
       <dd class="text-2xl md:text-3xl font-bold text-slate-900">{waiting.length}</dd>
@@ -228,6 +237,10 @@
     <div class="card px-4 py-3">
       <dt class="text-xs text-slate-500 flex items-center gap-1.5"><span class="status-dot status-dot-completed"></span> {$t('Fixed today')}</dt>
       <dd class="text-2xl md:text-3xl font-bold text-slate-900">{fixedCount}</dd>
+    </div>
+    <div class="card px-4 py-3">
+      <dt class="text-xs text-slate-500 flex items-center gap-1.5"><Euro size={14} class="text-slate-400" /> {$t('Donations')}</dt>
+      <dd class="text-2xl md:text-3xl font-bold text-slate-900">{money(data.donationsTotal)}</dd>
     </div>
   </dl>
 

@@ -31,6 +31,14 @@ export const fr: Record<string, string> = {
   'Tick this when the visitor collects their item and hands the card back. The number is then free for another visitor.':
     'Cochez ceci lorsque le visiteur récupère son objet et rend la carte. Le numéro est alors libre pour un autre visiteur.',
   'Could not save the card': 'Impossible d’enregistrer la carte',
+  'Donation (€)': 'Don (€)',
+  'Amount given at the exit': 'Montant donné à la sortie',
+  Amount: 'Montant',
+  'Money given at the exit, if any.': 'Somme donnée à la sortie, le cas échéant.',
+  'Please check the donation amount': 'Vérifiez le montant du don',
+  'Could not save the donation': 'Impossible d’enregistrer le don',
+  Donations: 'Dons',
+  Save: 'Enregistrer',
   'The visitor keeps card {number}, and we call them by that number. Write the job number on the item\'s tag, so we can match the item back to them.':
     'Le visiteur garde la carte {number} et nous l’appelons par ce numéro. Écrivez le numéro de fiche sur l’étiquette de l’objet, pour que nous puissions le retrouver.',
   'Add your email above to receive the newsletter.': 'Indiquez votre e-mail ci-dessus pour recevoir la newsletter.',

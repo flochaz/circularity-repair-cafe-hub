@@ -5,6 +5,7 @@ import { and, asc, count, desc, eq, sql } from 'drizzle-orm';
 import {
   MAX_CO2_SAVING_KG,
   assistedCheckInSchema,
+  jobDonationSchema,
   jobEditSchema,
   jobFeedbackSchema,
   needsPatTest,
@@ -157,7 +158,7 @@ export async function repairerRoutes(app: App): Promise<void> {
       .orderBy(asc(events.date))
       .limit(1);
     if (rows.length === 0) {
-      return { event: null, jobs: [], counts: null, myJobs: [] };
+      return { event: null, jobs: [], counts: null, myJobs: [], donationsTotal: 0 };
     }
     const evt = rows[0].event;
     const jobRows = await db
@@ -166,6 +167,7 @@ export async function repairerRoutes(app: App): Promise<void> {
         jobNumber: repairJobs.jobNumber,
         cardNumber: repairJobs.cardNumber,
         cardReturnedAt: repairJobs.cardReturnedAt,
+        donationAmount: repairJobs.donationAmount,
         customerName: repairJobs.customerName,
         itemDescription: repairJobs.itemDescription,
         faultDescription: repairJobs.faultDescription,
@@ -206,11 +208,14 @@ export async function repairerRoutes(app: App): Promise<void> {
       cannot_repair: jobs.filter((j) => j.status === 'cannot_repair').length,
       awaiting_return: jobs.filter((j) => j.status === 'awaiting_return').length,
     };
+    const donationsTotal =
+      Math.round(jobs.reduce((sum, j) => sum + (j.donationAmount == null ? 0 : Number(j.donationAmount)), 0) * 100) / 100;
 
     return {
       event: { ...evt, venueName: rows[0].venue.name },
       jobs,
       counts,
+      donationsTotal,
       myJobs: jobs.filter((j) => j.repairerId === me.sub && j.status === 'in_progress'),
     };
   });
@@ -478,6 +483,41 @@ export async function repairerRoutes(app: App): Promise<void> {
       entityType: 'repair_job',
       entityId: id,
       metadata: { cardNumber: existing.cardNumber },
+    });
+    return withoutVisitorToken(updated);
+  });
+
+  // Money the visitor puts in the box at the exit. Null clears it.
+  app.patch('/api/repairer/jobs/:id/donation', async (request, reply) => {
+    const { id } = request.params as { id: string };
+    const me = request.auth!;
+    const parsed = jobDonationSchema.safeParse(request.body);
+    if (!parsed.success) {
+      reply.code(400).send({ error: 'Enter a donation amount, or leave it empty', code: 'validation/failed' });
+      return;
+    }
+    const [existing] = await db.select({ id: repairJobs.id }).from(repairJobs).where(eq(repairJobs.id, id)).limit(1);
+    if (!existing) {
+      reply.code(404).send({ error: 'Job not found', code: 'job/not_found' });
+      return;
+    }
+    const amount = parsed.data.amount;
+    const [updated] = await db
+      .update(repairJobs)
+      .set({
+        donationAmount: amount === null ? null : amount.toFixed(2),
+        updatedAt: new Date(),
+      })
+      .where(eq(repairJobs.id, id))
+      .returning();
+    await audit({
+      request,
+      actorId: me.sub,
+      actorType: me.role,
+      action: 'repair.donation_recorded',
+      entityType: 'repair_job',
+      entityId: id,
+      metadata: { amount },
     });
     return withoutVisitorToken(updated);
   });

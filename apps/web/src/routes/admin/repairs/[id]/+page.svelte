@@ -48,6 +48,8 @@
     cardNumber: '' as string | number,
     /** The visitor handed the card back at the exit. */
     cardReturned: false,
+    /** Money given at the exit, in euros. */
+    donationAmount: '' as string | number,
     status: 'waiting',
   };
 
@@ -75,6 +77,7 @@
       satisfactionComment: detail.job.satisfactionComment ?? '',
       cardNumber: detail.job.cardNumber ?? '',
       cardReturned: detail.job.cardReturnedAt != null,
+      donationAmount: detail.job.donationAmount ?? '',
       status: detail.job.status,
     };
   }
@@ -104,6 +107,10 @@
           satisfactionComment: form.satisfactionComment || null,
           cardNumber: form.cardNumber === '' ? null : Number(form.cardNumber),
           cardReturned: form.cardNumber === '' ? false : form.cardReturned,
+          donationAmount:
+            form.donationAmount === '' || form.donationAmount === null || form.donationAmount === undefined
+              ? null
+              : Number(form.donationAmount),
         },
       });
       await load();
@@ -271,6 +278,11 @@
     <div class="grid sm:grid-cols-2 gap-3">
       <div><label class="label" for="pa">Parts used</label><input id="pa" class="input" bind:value={form.partsUsed} /></div>
       <div><label class="label" for="es">Saving (kg)</label><input id="es" class="input" type="number" step="0.001" bind:value={form.environmentalSavingKg} /></div>
+      <div>
+        <label class="label" for="don">Donation (€)</label>
+        <input id="don" class="input" type="number" min="0" max="10000" step="0.01" bind:value={form.donationAmount} />
+        <p class="mt-1 text-xs text-slate-500">Money given at the exit.</p>
+      </div>
     </div>
     <!-- Shown while the cafe asks for them, or when this repair already has an answer. -->
     {#if $cafe?.weighItemsEnabled || $cafe?.askFirstVisitEnabled || form.weightKg !== '' || form.firstVisit !== ''}

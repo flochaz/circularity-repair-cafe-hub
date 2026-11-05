@@ -444,6 +444,8 @@ export const repairJobs = sqliteTable(
      * is still out, even after the repair is finished. See migration 0014.
      */
     cardReturnedAt: timestamp('card_returned_at'),
+    /** Money the visitor gave at the exit, in euros. Optional. */
+    donationAmount: numeric('donation_amount', 2),
     customerName: text('customer_name'),
     customerContact: text('customer_contact'),
     /** The visitor's email, kept apart from the free-text phone. */

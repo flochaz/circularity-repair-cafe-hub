@@ -60,6 +60,7 @@ export async function adminStatsRoutes(app: App): Promise<void> {
         COUNT(DISTINCT rj.repairer_id) FILTER (WHERE rj.repairer_id IS NOT NULL) AS repairer_count,
         COALESCE(SUM(rj.co2_saving_kg) FILTER (WHERE rj.status = 'completed'), 0) AS savings_kg,
         COALESCE(SUM(rj.weight_kg) FILTER (WHERE rj.status = 'completed'), 0) AS fixed_weight_kg,
+        COALESCE(SUM(rj.donation_amount), 0) AS donations,
         COUNT(rj.id) FILTER (WHERE rj.satisfaction = 'satisfied') AS satisfied,
         COUNT(rj.id) FILTER (WHERE rj.satisfaction = 'not_satisfied') AS not_satisfied,
         COALESCE(AVG(${DURATION_MIN})
@@ -90,6 +91,9 @@ export async function adminStatsRoutes(app: App): Promise<void> {
       // The weight of the items that were fixed, in kilograms: what was kept
       // out of the bin. Zero when the cafe does not weigh items.
       fixedWeightKg: Math.round(Number(r.fixed_weight_kg ?? 0) * 100) / 100,
+      // Money given at the exit. A donation is not tied to a successful
+      // repair, so every recorded amount counts.
+      donations: Math.round(Number(r.donations ?? 0) * 100) / 100,
       // How visitors answered at the exit. Null when nobody answered, so a
       // cafe that does not ask never shows a meaningless figure.
       satisfactionRate: satisfied + notSatisfied > 0 ? Math.round((satisfied / (satisfied + notSatisfied)) * 100) : null,
@@ -196,6 +200,7 @@ export async function adminStatsRoutes(app: App): Promise<void> {
         COUNT(*) FILTER (WHERE status IN ('waiting','in_progress')) AS open_count,
         COALESCE(SUM(co2_saving_kg) FILTER (WHERE status = 'completed'), 0) AS savings_kg,
         COALESCE(SUM(weight_kg) FILTER (WHERE status = 'completed'), 0) AS saved_weight_kg,
+        COALESCE(SUM(donation_amount), 0) AS donations,
         COALESCE(AVG(${DURATION_MIN_BARE})
                  FILTER (WHERE ${TIMED_BARE}), 0) AS avg_duration_min,
         COALESCE(SUM(${DURATION_MIN_BARE})
@@ -289,6 +294,7 @@ export async function adminStatsRoutes(app: App): Promise<void> {
         totalDurationMin: Math.round(Number(t.total_duration_min ?? 0)),
         environmentalSavingKg: Number(t.savings_kg ?? 0),
         savedWeightKg: Math.round(Number(t.saved_weight_kg ?? 0) * 100) / 100,
+        donations: Math.round(Number(t.donations ?? 0) * 100) / 100,
       },
       repairers: repairersRows.rows.map((r: any) => ({
         id: r.id,
