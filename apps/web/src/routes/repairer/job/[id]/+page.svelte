@@ -440,7 +440,7 @@
       </header>
 
       {#if editing}
-        <section class="card p-5 space-y-4">
+        <form class="card p-5 space-y-4" on:submit|preventDefault={saveEdit}>
           <div class="flex items-center justify-between gap-2">
             <h2 class="font-semibold">{$t('Edit details')}</h2>
             <button type="button" class="btn-ghost btn-sm" disabled={editBusy} on:click={cancelEdit}>{$t('Cancel')}</button>
@@ -508,9 +508,9 @@
           {#if editError}<p class="text-sm text-rose-700">{editError}</p>{/if}
           <div class="flex justify-end gap-2">
             <button type="button" class="btn-ghost" disabled={editBusy} on:click={cancelEdit}>{$t('Cancel')}</button>
-            <button type="button" class="btn-primary" disabled={editBusy} on:click={saveEdit}>{editBusy ? $t('Saving…') : $t('Save changes')}</button>
+            <button type="submit" class="btn-primary" disabled={editBusy}>{editBusy ? $t('Saving…') : $t('Save changes')}</button>
           </div>
-        </section>
+        </form>
       {:else}
         <section class="card p-5">
           <h2 class="font-semibold">{$t('What is wrong')}</h2>
