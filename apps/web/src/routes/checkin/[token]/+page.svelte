@@ -431,7 +431,7 @@
 
 <main class="min-h-screen bg-slate-100 customer-ui">
   <div class="fixed top-3 right-3 z-40"><LanguageSwitch /></div>
-  <div class="max-w-md mx-auto px-4 py-8">
+  <div class="max-w-md sm:max-w-2xl lg:max-w-3xl mx-auto px-4 py-8">
     {#if loadError}
       <div class="card p-6 text-center">
         <h1 class="text-2xl font-semibold">{$t('Sorry')}</h1>
@@ -534,24 +534,26 @@
         <div class="card p-8">
           <h1 class="text-2xl font-bold">{$t('First, a little about you')}</h1>
           <div class="mt-6 space-y-5">
-            <div>
-              <label class="label text-base" for="cn">{$t('First name')} <span class="font-normal text-slate-500">{$t('(required)')}</span></label>
-              <input id="cn" class="input text-lg py-4" maxlength="50" bind:value={customerName} autocomplete="given-name" />
-            </div>
-            <div>
-              <label class="label text-base" for="cln">{$t('Last name')} <span class="font-normal text-slate-500">{$t('(optional)')}</span></label>
-              <input id="cln" class="input text-lg py-4" maxlength="50" bind:value={customerLastName} autocomplete="family-name" />
-            </div>
-            {#if info.cafe.enableContactField}
+            <div class="grid gap-4 sm:grid-cols-2">
               <div>
-                <label class="label text-base" for="cp">{$t('Phone number')} <span class="font-normal text-slate-500">{$t('(optional)')}</span></label>
-                <input id="cp" class="input text-lg py-4" type="tel" maxlength="50" bind:value={customerPhone} autocomplete="tel" />
+                <label class="label text-base" for="cn">{$t('First name')} <span class="font-normal text-slate-500">{$t('(required)')}</span></label>
+                <input id="cn" class="input text-lg py-4" maxlength="50" bind:value={customerName} autocomplete="given-name" />
               </div>
               <div>
-                <label class="label text-base" for="ce">{$t('Email address')} <span class="font-normal text-slate-500">{$t('(optional)')}</span></label>
-                <input id="ce" class="input text-lg py-4" type="email" maxlength="200" bind:value={customerEmail} autocomplete="email" />
+                <label class="label text-base" for="cln">{$t('Last name')} <span class="font-normal text-slate-500">{$t('(optional)')}</span></label>
+                <input id="cln" class="input text-lg py-4" maxlength="50" bind:value={customerLastName} autocomplete="family-name" />
               </div>
-            {/if}
+              {#if info.cafe.enableContactField}
+                <div>
+                  <label class="label text-base" for="cp">{$t('Phone number')} <span class="font-normal text-slate-500">{$t('(optional)')}</span></label>
+                  <input id="cp" class="input text-lg py-4" type="tel" maxlength="50" bind:value={customerPhone} autocomplete="tel" />
+                </div>
+                <div>
+                  <label class="label text-base" for="ce">{$t('Email address')} <span class="font-normal text-slate-500">{$t('(optional)')}</span></label>
+                  <input id="ce" class="input text-lg py-4" type="email" maxlength="200" bind:value={customerEmail} autocomplete="email" />
+                </div>
+              {/if}
+            </div>
             <label class="flex items-start gap-3 cursor-pointer">
               <input type="checkbox" class="h-6 w-6 rounded border-slate-300 text-brand-600 mt-0.5" bind:checked={gdpr} />
               <span class="text-base">{$t("I'm happy for my details to be stored for this repair session.")}</span>
@@ -591,7 +593,7 @@
           <div class="mt-6 space-y-5">
             <div>
               <p class="label text-base">{$t('What type of item is it?')}</p>
-              <div class="grid grid-cols-2 gap-3 mt-1">
+              <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 mt-1">
                 {#each info.categories as cat}
                   <button
                     type="button"
@@ -631,16 +633,18 @@
               </div>
             {/if}
 
-            <div>
-              <label class="label text-base" for="id">{$t('Item description')}</label>
-              <input id="id" class="input text-lg py-4" maxlength="200" placeholder={$t('e.g. Bosch cordless drill, blue')} bind:value={itemDescription} />
-            </div>
-            <div>
-              <label class="label text-base" for="ib">{$t('Brand (optional)')}</label>
-              <input id="ib" class="input text-lg py-4" maxlength="100" bind:value={itemBrand} />
+            <div class="grid gap-4 sm:grid-cols-2">
+              <div>
+                <label class="label text-base" for="id">{$t('Item description')}</label>
+                <input id="id" class="input text-lg py-4" maxlength="200" placeholder={$t('e.g. Bosch cordless drill, blue')} bind:value={itemDescription} />
+              </div>
+              <div>
+                <label class="label text-base" for="ib">{$t('Brand (optional)')}</label>
+                <input id="ib" class="input text-lg py-4" maxlength="100" bind:value={itemBrand} />
+              </div>
             </div>
             {#if info.cafe.weighItemsEnabled}
-              <div>
+              <div class="sm:max-w-xs">
                 <label class="label text-base" for="wt">{$t('Weight in kg (optional)')}</label>
                 <input id="wt" type="text" inputmode="decimal" class="input text-lg py-4" placeholder={$t('e.g. 1.5')} bind:value={weightKg} />
               </div>
@@ -648,7 +652,7 @@
             {#if info.cafe.askFirstVisitEnabled}
               <fieldset>
                 <legend class="label text-base">{$t('Is this your first visit to us? (optional)')}</legend>
-                <div class="flex gap-2">
+                <div class="flex gap-2 sm:max-w-md">
                   {#each [[true, 'Yes'], [false, 'No']] as [value, text]}
                     <button
                       type="button"
