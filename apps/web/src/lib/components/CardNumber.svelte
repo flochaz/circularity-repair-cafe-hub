@@ -9,7 +9,7 @@
 
 {#if number != null}
   <span
-    class="inline-flex items-center rounded-md bg-sky-100 px-1.5 py-0.5 text-[11px] font-semibold text-sky-800 align-middle"
+    class="inline-flex items-center whitespace-nowrap rounded-md bg-sky-100 px-1.5 py-0.5 font-sans text-[11px] font-semibold text-sky-800 align-middle"
     title={$t('Card number')}
   >{$t('Card {n}', { n: number })}</span>
 {/if}
