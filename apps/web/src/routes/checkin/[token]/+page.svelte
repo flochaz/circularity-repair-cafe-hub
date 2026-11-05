@@ -10,6 +10,7 @@
   import Icon from '@iconify/svelte';
   import { categoryIcon } from '$lib/categoryIcon';
   import { t, tNow } from '$lib/i18n';
+  import LanguageSwitch from '$lib/components/LanguageSwitch.svelte';
   import { loadPreRegistration } from '$lib/preRegistration';
 
   $: token = $page.params.token;
@@ -429,6 +430,7 @@
 </script>
 
 <main class="min-h-screen bg-slate-100 customer-ui">
+  <div class="fixed top-3 right-3 z-40"><LanguageSwitch /></div>
   <div class="max-w-md mx-auto px-4 py-8">
     {#if loadError}
       <div class="card p-6 text-center">
