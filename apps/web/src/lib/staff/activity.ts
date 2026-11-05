@@ -24,6 +24,8 @@ export function describeActivity(a: any): { who: string | null; rest: string } {
     case 'checkin.assisted': return { who, rest: `checked in ${item} for a visitor` };
     case 'repair.accepted': return { who, rest: `started work on ${item}` };
     case 'repair.taken_over': return { who, rest: `took over ${item}` };
+    case 'repair.assigned': return { who, rest: `assigned ${item} to ${a.metadata?.repairerName ?? 'a repairer'}` };
+    case 'repair.unassigned': return { who, rest: `put ${item} back in the queue` };
     case 'repair.released': return { who, rest: `put ${item} back in the queue` };
     case 'repair.completed': return { who, rest: `fixed ${item}` };
     case 'repair.cannot_repair': return { who, rest: `could not fix ${item}` };

@@ -294,6 +294,15 @@ export const fr: Record<string, string> = {
   'Take it over if they have had to stop, or have handed it to you.':
     'Prenez-la en charge s’il a dû s’arrêter, ou s’il vous l’a confiée.',
   'Take over this repair': 'Prendre cette réparation en charge',
+  'Nobody yet': 'Personne pour l’instant',
+  Assign: 'Attribuer',
+  'Assign the volunteer doing this repair. They do not need to be signed in.':
+    'Attribuez la réparation au bénévole qui la prend en charge. Il n’a pas besoin d’être connecté.',
+  'Could not assign this repair': 'Impossible d’attribuer cette réparation',
+  'Record the outcome for {name}': 'Enregistrer le résultat pour {name}',
+  'the repairer': 'le réparateur',
+  'The repair stays credited to {name}. Assign it to yourself above if you are taking it over.':
+    'La réparation reste attribuée à {name}. Attribuez-la-vous ci-dessus si vous la reprenez.',
   'How did it go?': 'Comment cela s’est-il passé ?',
   Outcome: 'Résultat',
   'It works again': 'Il fonctionne à nouveau',

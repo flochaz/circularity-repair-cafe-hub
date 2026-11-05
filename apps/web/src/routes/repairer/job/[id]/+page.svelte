@@ -67,7 +67,6 @@
   let error = '';
   let showCamera = false;
   let cameraStage: 'during_repair' | 'completed' = 'during_repair';
-  let confirmTakeOver = false;
   let confirmRelease = false;
   /** The visitor's verdict at the exit, if they gave one. */
   let satisfaction: '' | 'satisfied' | 'not_satisfied' = '';
@@ -77,6 +76,11 @@
   let patChoice: PatResult | null = null;
   let patNotes = '';
   let changingPat = false;
+  /** The team members a repair can be put in the name of. */
+  let volunteers: Array<{ id: string; displayName: string; role: string }> = [];
+  /** The person picked in the repairer drop-down. */
+  let assignId = '';
+  let assigning = false;
 
   $: myId = $auth?.user.id ?? null;
   $: status = detail?.job.status as string | undefined;
@@ -96,6 +100,7 @@
       if (detail.job.partsUsed) partsUsed = detail.job.partsUsed;
       if (detail.job.environmentalSavingKg) savings = detail.job.environmentalSavingKg;
       co2FactorId = detail.job.co2FactorId ?? null;
+      assignId = detail.job.repairerId ?? '';
       satisfaction = detail.job.satisfaction ?? '';
       if (detail.job.satisfactionComment) satisfactionComment = detail.job.satisfactionComment;
     } catch (err: any) {
@@ -122,6 +127,11 @@
   onMount(async () => {
     await load();
     try {
+      volunteers = await api<typeof volunteers>('/api/repairer/volunteers');
+    } catch {
+      /* the drop-down just stays empty */
+    }
+    try {
       const res = await fetch('/api/public/co2-factors');
       if (!res.ok) return;
       const body = (await res.json()) as { enabled: boolean; displacementRate: number; factors: typeof factors };
@@ -143,7 +153,23 @@
       error = err?.message ?? tNow('Could not start this repair');
     } finally {
       busy = false;
-      confirmTakeOver = false;
+    }
+  }
+
+  /** Put the repair in someone else's name, or back in the queue. */
+  async function assignRepairer() {
+    assigning = true;
+    error = '';
+    try {
+      await api(`/api/repairer/jobs/${id}/assign`, {
+        method: 'PATCH',
+        json: { repairerId: assignId || null },
+      });
+      await load();
+    } catch (err: any) {
+      error = err?.message ?? tNow('Could not assign this repair');
+    } finally {
+      assigning = false;
     }
   }
 
@@ -286,9 +312,9 @@
             <dt class="text-slate-500">{$t('Checked in')}</dt>
             <dd class="text-slate-900">{clockTime(detail.job.createdAt)} · {$t('waited {duration}', { duration: formatDuration(minutesBetween(detail.job.createdAt, detail.job.acceptedAt ? new Date(detail.job.acceptedAt).getTime() : Date.now())) })}</dd>
           </div>
-          {#if detail.repairer && (status === 'in_progress' || isFinished)}
+          {#if detail.repairer && detail.job.repairerId}
             <div>
-              <dt class="text-slate-500">{isFinished ? $t('Repaired by') : $t('With')}</dt>
+              <dt class="text-slate-500">{isFinished ? $t('Repaired by') : $t('Repairer')}</dt>
               <dd class="text-slate-900">{isMine ? $t('You') : detail.repairer.displayName}</dd>
             </div>
           {/if}
@@ -311,7 +337,7 @@
       <section class="card p-5">
         <div class="flex justify-between items-center gap-2">
           <h2 class="font-semibold">{$t('Photos')}</h2>
-          {#if isMine && !showCamera}
+          {#if status === 'in_progress' && !showCamera}
             <button class="btn-secondary btn-sm" on:click={() => { cameraStage = 'during_repair'; showCamera = true; }}><CameraIcon size={16} /> {$t('Add a photo')}</button>
           {/if}
         </div>
@@ -326,7 +352,7 @@
             {/each}
           </div>
         {/if}
-        {#if showCamera && isMine}
+        {#if showCamera && status === 'in_progress'}
           <div class="mt-4 flex gap-2 items-center flex-wrap">
             <span class="text-sm text-slate-600">{$t('This photo is')}</span>
             <select bind:value={cameraStage} class="input !py-1.5 !text-sm w-auto">
@@ -342,6 +368,24 @@
 
     <!-- ── What to do next ─────────────────────────────────────────── -->
     <div class="lg:col-span-2 space-y-4 lg:sticky lg:top-6">
+      {#if !isFinished}
+        <section class="card p-5">
+          <h2 class="font-semibold">{$t('Repairer')}</h2>
+          <p class="mt-1 text-sm text-slate-600">{$t('Assign the volunteer doing this repair. They do not need to be signed in.')}</p>
+          <div class="mt-3 flex gap-2">
+            <select class="input" bind:value={assignId} aria-label={$t('Repairer')}>
+              <option value="">{$t('Nobody yet')}</option>
+              {#each volunteers as v (v.id)}
+                <option value={v.id}>{v.displayName}</option>
+              {/each}
+            </select>
+            <button class="btn-secondary shrink-0" disabled={assigning || assignId === (detail.job.repairerId ?? '')} on:click={assignRepairer}>
+              {assigning ? $t('Saving…') : $t('Assign')}
+            </button>
+          </div>
+        </section>
+      {/if}
+
       {#if status === 'waiting'}
         <section class="card p-5">
           <h2 class="font-semibold">{$t('Waiting for a repairer')}</h2>
@@ -355,22 +399,12 @@
           <p class="mt-2 text-sm text-slate-600">{$t('When the visitor is back, carry on with the repair here.')}</p>
           <button class="btn-primary w-full mt-4" disabled={busy} on:click={claim}>{busy ? $t('Starting…') : $t('They are back: carry on')}</button>
         </section>
-      {:else if status === 'in_progress' && !isMine}
-        <section class="card p-5">
-          <h2 class="font-semibold">{$t('{name} is working on this', { name: firstName(detail.repairer?.displayName) || $t('Another repairer') })}</h2>
-          <p class="mt-1 text-sm text-slate-600">{$t('Take it over if they have had to stop, or have handed it to you.')}</p>
-          {#if confirmTakeOver}
-            <div class="mt-4 grid grid-cols-2 gap-2">
-              <button class="btn-ghost" on:click={() => (confirmTakeOver = false)}>{$t('Cancel')}</button>
-              <button class="btn-primary" disabled={busy} on:click={claim}>{$t('Yes, take it over')}</button>
-            </div>
-          {:else}
-            <button class="btn-secondary w-full mt-4" on:click={() => (confirmTakeOver = true)}>{$t('Take over this repair')}</button>
-          {/if}
-        </section>
-      {:else if isMine}
+      {:else if status === 'in_progress'}
         <section class="card p-5 space-y-4">
-          <h2 class="font-semibold">{$t('How did it go?')}</h2>
+          <h2 class="font-semibold">{isMine ? $t('How did it go?') : $t('Record the outcome for {name}', { name: firstName(detail.repairer?.displayName) || $t('the repairer') })}</h2>
+          {#if !isMine}
+            <p class="text-sm text-slate-600 bg-slate-50 rounded-lg px-3 py-2">{$t('The repair stays credited to {name}. Assign it to yourself above if you are taking it over.', { name: firstName(detail.repairer?.displayName) || $t('the repairer') })}</p>
+          {/if}
           <div class="grid grid-cols-3 gap-2" role="radiogroup" aria-label={$t('Outcome')}>
             {#each OUTCOMES as o}
               <button
@@ -539,7 +573,7 @@
           {/if}
         </section>
       {/if}
-      {#if error && !isMine}<p class="text-sm text-rose-700">{error}</p>{/if}
+      {#if error && status !== 'in_progress'}<p class="text-sm text-rose-700">{error}</p>{/if}
     </div>
   </div>
 {/if}

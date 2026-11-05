@@ -311,6 +311,16 @@ export async function repairerRoutes(app: App): Promise<void> {
     };
   });
 
+  // Who a repair can be put in the name of. Any signed-in member of staff can
+  // read the list: the person running the queue may not be an admin.
+  app.get('/api/repairer/volunteers', async () => {
+    return db
+      .select({ id: users.id, displayName: users.displayName, role: users.role })
+      .from(users)
+      .where(eq(users.isActive, true))
+      .orderBy(asc(users.displayName));
+  });
+
   app.get('/api/repairer/jobs/:id', async (request, reply) => {
     const { id } = request.params as { id: string };
     const rows = await db
@@ -494,6 +504,89 @@ export async function repairerRoutes(app: App): Promise<void> {
     return withoutVisitorToken(updated);
   });
 
+  // Put a repair in someone else's name. A volunteer may not carry a phone or
+  // may not be signed in, so the person running the queue assigns the work for
+  // them. The assigned repairer is kept when anyone records the outcome, so
+  // the repair stays credited to the person who did it.
+  app.patch('/api/repairer/jobs/:id/assign', async (request, reply) => {
+    const { id } = request.params as { id: string };
+    const me = request.auth!;
+    const repairerId = (request.body as { repairerId?: unknown } | undefined)?.repairerId;
+    if (!(repairerId === null || typeof repairerId === 'string')) {
+      reply.code(400).send({ error: 'Choose a repairer', code: 'validation/failed' });
+      return;
+    }
+    const [existing] = await db.select().from(repairJobs).where(eq(repairJobs.id, id)).limit(1);
+    if (!existing) {
+      reply.code(404).send({ error: 'Job not found', code: 'job/not_found' });
+      return;
+    }
+    if (['completed', 'cannot_repair', 'returned'].includes(existing.status)) {
+      reply.code(409).send({ error: 'Job is already finished', code: 'job/already_finished' });
+      return;
+    }
+
+    if (repairerId === null) {
+      if (existing.repairerId === null) return withoutVisitorToken(existing);
+      const [updated] = await db
+        .update(repairJobs)
+        .set({ status: 'waiting', repairerId: null, acceptedAt: null, updatedAt: new Date() })
+        .where(eq(repairJobs.id, id))
+        .returning();
+      await audit({
+        request,
+        actorId: me.sub,
+        actorType: me.role,
+        action: 'repair.unassigned',
+        entityType: 'repair_job',
+        entityId: id,
+        metadata: { previousRepairerId: existing.repairerId },
+      });
+      return withoutVisitorToken(updated);
+    }
+
+    const [target] = await db
+      .select({ id: users.id, displayName: users.displayName, isActive: users.isActive })
+      .from(users)
+      .where(eq(users.id, repairerId))
+      .limit(1);
+    if (!target || !target.isActive) {
+      reply.code(400).send({ error: 'That volunteer is not in the hub', code: 'user/not_found' });
+      return;
+    }
+    if (existing.repairerId === target.id && existing.status === 'in_progress') {
+      return withoutVisitorToken(existing);
+    }
+
+    // A waiting item starts as soon as it is given to someone. A paused one
+    // stays paused until the visitor brings the part back, whoever will do it.
+    const starts = existing.status === 'waiting';
+    const [updated] = await db
+      .update(repairJobs)
+      .set({
+        status: starts ? 'in_progress' : existing.status,
+        repairerId: target.id,
+        acceptedAt: starts ? new Date() : existing.acceptedAt,
+        updatedAt: new Date(),
+      })
+      .where(eq(repairJobs.id, id))
+      .returning();
+    await audit({
+      request,
+      actorId: me.sub,
+      actorType: me.role,
+      action: 'repair.assigned',
+      entityType: 'repair_job',
+      entityId: id,
+      metadata: {
+        repairerId: target.id,
+        repairerName: target.displayName,
+        previousRepairerId: existing.repairerId,
+      },
+    });
+    return withoutVisitorToken(updated);
+  });
+
   app.patch('/api/repairer/jobs/:id/release', async (request, reply) => {
     const { id } = request.params as { id: string };
     const me = request.auth!;
@@ -502,10 +595,8 @@ export async function repairerRoutes(app: App): Promise<void> {
       reply.code(404).send({ error: 'Job not found', code: 'job/not_found' });
       return;
     }
-    if (existing.repairerId !== me.sub && me.role === 'repairer') {
-      reply.code(403).send({ error: 'Not your job', code: 'job/not_owner' });
-      return;
-    }
+    // Anyone on the team may put an item back, including the person running
+    // the queue on behalf of a repairer who is not signed in.
     const [updated] = await db
       .update(repairJobs)
       .set({ status: 'waiting', repairerId: null, acceptedAt: null, updatedAt: new Date() })
@@ -560,10 +651,9 @@ export async function repairerRoutes(app: App): Promise<void> {
       reply.code(404).send({ error: 'Job not found', code: 'job/not_found' });
       return;
     }
-    if (existing.repairerId !== me.sub && me.role === 'repairer') {
-      reply.code(403).send({ error: 'Not your job', code: 'job/not_owner' });
-      return;
-    }
+    // Anyone on the team may record the outcome, including the person running
+    // the queue for a repairer who is not signed in. The repair stays in the
+    // assigned repairer's name and counts towards their total.
 
     // PAT testing. While the cafe does PAT tests, an electrical item cannot
     // be marked as fixed until a result is recorded, and an item that failed
