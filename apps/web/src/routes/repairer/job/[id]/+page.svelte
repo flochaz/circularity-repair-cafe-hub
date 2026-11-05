@@ -73,6 +73,9 @@
   let satisfaction: '' | 'satisfied' | 'not_satisfied' = '';
   let satisfactionComment = '';
   let savingFeedback = false;
+  /** Whether the numbered card has been handed back at the exit. */
+  let cardReturned = false;
+  let savingCardReturn = false;
   /** The PAT result chosen on this page, saved with the repair. */
   let patChoice: PatResult | null = null;
   let patNotes = '';
@@ -129,6 +132,7 @@
       co2FactorId = detail.job.co2FactorId ?? null;
       assignId = detail.job.repairerId ?? '';
       satisfaction = detail.job.satisfaction ?? '';
+      cardReturned = detail.job.cardReturnedAt != null;
       if (detail.job.satisfactionComment) satisfactionComment = detail.job.satisfactionComment;
     } catch (err: any) {
       loadError =
@@ -350,6 +354,25 @@
       error = err?.message ?? tNow('Could not save the answer');
     } finally {
       savingFeedback = false;
+    }
+  }
+
+  /** The visitor handed the numbered card back at the exit. */
+  async function setCardReturned(returned: boolean) {
+    if (!detail?.job.cardNumber) return;
+    savingCardReturn = true;
+    error = '';
+    try {
+      await api(`/api/repairer/jobs/${id}/card-return`, {
+        method: 'PATCH',
+        json: { returned },
+      });
+      await load();
+    } catch (err: any) {
+      error = err?.message ?? tNow('Could not save the card');
+      await load();
+    } finally {
+      savingCardReturn = false;
     }
   }
 
@@ -739,6 +762,25 @@
           {#if pat?.result}
             <p class="text-sm flex items-center gap-2 flex-wrap"><PatBadge result={pat.result} /> <span class="text-slate-600">{#if pat.testedByName}{$t('by {name}', { name: pat.testedByName })} {/if}{#if pat.testedAt}{$t('at {time}', { time: clockTime(pat.testedAt) })}{/if}</span></p>
             {#if pat.notes}<p class="text-sm text-slate-700">{pat.notes}</p>{/if}
+          {/if}
+          {#if detail.job.cardNumber != null}
+            <div class="pt-3 mt-1 border-t border-slate-100">
+              <label class="flex items-start gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  class="h-5 w-5 rounded border-slate-300 text-brand-600 mt-0.5"
+                  checked={cardReturned}
+                  disabled={savingCardReturn}
+                  on:change={(e) => setCardReturned(e.currentTarget.checked)}
+                />
+                <span class="text-sm text-slate-700">
+                  {$t('Card {n} was given back', { n: detail.job.cardNumber })}
+                  <span class="block text-xs text-slate-500">
+                    {$t('Tick this when the visitor collects their item and hands the card back. The number is then free for another visitor.')}
+                  </span>
+                </span>
+              </label>
+            </div>
           {/if}
           {#if $cafe?.askSatisfactionEnabled}
           <div class="pt-3 mt-1 border-t border-slate-100">

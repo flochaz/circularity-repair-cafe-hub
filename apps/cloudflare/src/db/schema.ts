@@ -439,6 +439,11 @@ export const repairJobs = sqliteTable(
     jobNumber: text('job_number').notNull().unique(),
     /** A short per-session number, for a reusable card. Optional. */
     cardNumber: integer('card_number'),
+    /**
+     * When the visitor handed the card back at the exit. Null while the card
+     * is still out, even after the repair is finished. See migration 0014.
+     */
+    cardReturnedAt: timestamp('card_returned_at'),
     customerName: text('customer_name'),
     customerContact: text('customer_contact'),
     /** The visitor's email, kept apart from the free-text phone. */

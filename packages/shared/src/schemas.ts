@@ -350,6 +350,8 @@ export const repairUpdateSchema = z.object({
   satisfaction: z.enum(['satisfied', 'not_satisfied']).nullable().optional(),
   satisfactionComment: z.string().max(500).optional().nullable(),
   cardNumber: z.number().int().positive().max(999).optional().nullable(),
+  /** The visitor handed the card back at the exit. */
+  cardReturned: z.boolean().optional(),
 });
 
 // Recording how the visitor said the repair went, at the exit. Both fields are

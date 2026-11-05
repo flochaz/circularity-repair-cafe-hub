@@ -50,6 +50,7 @@ export async function adminBoardRoutes(app: App): Promise<void> {
           id: repairJobs.id,
           jobNumber: repairJobs.jobNumber,
           cardNumber: repairJobs.cardNumber,
+          cardReturnedAt: repairJobs.cardReturnedAt,
           customerName: repairJobs.customerName,
           itemDescription: repairJobs.itemDescription,
           itemBrand: repairJobs.itemBrand,
@@ -73,7 +74,8 @@ export async function adminBoardRoutes(app: App): Promise<void> {
             sql`(
               ${repairJobs.status} IN ('waiting','in_progress')
               OR (${repairJobs.completedAt} IS NOT NULL
-                  AND ${repairJobs.completedAt} >= ${Date.now() - 45 * 60 * 1000})
+                  AND ${repairJobs.completedAt} >= ${Date.now() - 45 * 60 * 1000}
+                  AND (${repairJobs.cardNumber} IS NULL OR ${repairJobs.cardReturnedAt} IS NULL))
             )`,
           ),
         )

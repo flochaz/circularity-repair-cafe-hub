@@ -110,6 +110,7 @@ export async function displayRoutes(app: App): Promise<void> {
           .select({
             jobNumber: repairJobs.jobNumber,
             cardNumber: repairJobs.cardNumber,
+            cardReturnedAt: repairJobs.cardReturnedAt,
             item: repairJobs.itemDescription,
             status: repairJobs.status,
             createdAt: repairJobs.createdAt,
@@ -136,7 +137,10 @@ export async function displayRoutes(app: App): Promise<void> {
           r.status === 'in_progress' ||
           ((r.status === 'completed' || r.status === 'cannot_repair') &&
             r.completedAt !== null &&
-            now - new Date(r.completedAt).getTime() < RECENTLY_FINISHED_MS),
+            now - new Date(r.completedAt).getTime() < RECENTLY_FINISHED_MS &&
+            // A carded item is collected when the card comes back, so it leaves
+            // the "ready" list at once. Without a card, the time window runs.
+            (r.cardNumber === null || r.cardReturnedAt === null)),
       )
       .map((r) => ({
         jobNumber: r.jobNumber,

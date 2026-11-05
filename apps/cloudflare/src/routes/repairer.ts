@@ -14,7 +14,7 @@ import {
 import { cafeFeatures } from '../services/preRegistration.js';
 import { saveValidatedImage } from '../services/imageUpload.js';
 import { withJobNumber } from '../services/jobNumber.js';
-import { cardInUse, cardInUseError, holdsCard } from '../services/cardNumbers.js';
+import { cardInUse, cardInUseError } from '../services/cardNumbers.js';
 import { randomToken } from '../utils/tokens.js';
 import { audit } from '../utils/audit.js';
 import { repairerSummary } from '../utils/users.js';
@@ -165,6 +165,7 @@ export async function repairerRoutes(app: App): Promise<void> {
         id: repairJobs.id,
         jobNumber: repairJobs.jobNumber,
         cardNumber: repairJobs.cardNumber,
+        cardReturnedAt: repairJobs.cardReturnedAt,
         customerName: repairJobs.customerName,
         itemDescription: repairJobs.itemDescription,
         faultDescription: repairJobs.faultDescription,
@@ -404,9 +405,9 @@ export async function repairerRoutes(app: App): Promise<void> {
       return;
     }
     const cardNumber = data.cardNumber ?? null;
-    // Only a job that still holds its card can clash with another open job.
-    // A finished repair keeps its number as history, like the admin edit.
-    if (cardNumber != null && holdsCard(existing.status) && (await cardInUse(existing.eventId, cardNumber, id))) {
+    // Only a card that is still out can clash with another visitor's card.
+    // A card handed back at the exit is history, like the admin edit.
+    if (cardNumber != null && existing.cardReturnedAt === null && (await cardInUse(existing.eventId, cardNumber, id))) {
       reply.code(409).send(cardInUseError(cardNumber));
       return;
     }
@@ -435,6 +436,48 @@ export async function repairerRoutes(app: App): Promise<void> {
       entityType: 'repair_job',
       entityId: id,
       metadata: { status: existing.status, cardNumber },
+    });
+    return withoutVisitorToken(updated);
+  });
+
+  // The visitor hands the numbered card back at the exit. Only then is the
+  // number free for another visitor, whatever the repair's status.
+  app.patch('/api/repairer/jobs/:id/card-return', async (request, reply) => {
+    const { id } = request.params as { id: string };
+    const me = request.auth!;
+    const returned = (request.body as { returned?: unknown } | undefined)?.returned;
+    if (typeof returned !== 'boolean') {
+      reply.code(400).send({ error: 'returned must be true or false', code: 'validation/failed' });
+      return;
+    }
+    const [existing] = await db.select().from(repairJobs).where(eq(repairJobs.id, id)).limit(1);
+    if (!existing) {
+      reply.code(404).send({ error: 'Job not found', code: 'job/not_found' });
+      return;
+    }
+    if (existing.cardNumber == null) {
+      reply.code(400).send({ error: 'This repair has no card', code: 'card/none' });
+      return;
+    }
+    if (returned && existing.cardReturnedAt) return withoutVisitorToken(existing);
+    if (!returned && existing.cardReturnedAt === null) return withoutVisitorToken(existing);
+    if (!returned && (await cardInUse(existing.eventId, existing.cardNumber, id))) {
+      reply.code(409).send(cardInUseError(existing.cardNumber));
+      return;
+    }
+    const [updated] = await db
+      .update(repairJobs)
+      .set({ cardReturnedAt: returned ? new Date() : null, updatedAt: new Date() })
+      .where(eq(repairJobs.id, id))
+      .returning();
+    await audit({
+      request,
+      actorId: me.sub,
+      actorType: me.role,
+      action: returned ? 'repair.card_returned' : 'repair.card_not_returned',
+      entityType: 'repair_job',
+      entityId: id,
+      metadata: { cardNumber: existing.cardNumber },
     });
     return withoutVisitorToken(updated);
   });

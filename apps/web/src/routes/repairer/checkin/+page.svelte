@@ -132,12 +132,11 @@
     photoPreview = null;
   }
 
-  type SessionJob = { cardNumber: number | null; status: string };
+  type SessionJob = { cardNumber: number | null; cardReturnedAt: string | null };
 
-  /** A number is taken while its job is still open. The rest are free. */
+  /** A number is taken while its card is still out, even if the repair is done. */
   function cardsInUse(jobs: SessionJob[] | undefined): number[] {
-    const open = ['waiting', 'in_progress', 'awaiting_return'];
-    return (jobs ?? []).filter((j) => open.includes(j.status) && j.cardNumber != null).map((j) => j.cardNumber as number);
+    return (jobs ?? []).filter((j) => j.cardNumber != null && j.cardReturnedAt == null).map((j) => j.cardNumber as number);
   }
 
   /**

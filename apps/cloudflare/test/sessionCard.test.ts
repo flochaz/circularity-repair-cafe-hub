@@ -13,7 +13,7 @@ describe('session card numbers', () => {
   let reuseId = '';
   let firstCustomerToken = '';
 
-  it('keeps a number unique among open jobs, and frees it when the job closes', async () => {
+  it('keeps a number unique while its card is out, and frees it when the card comes back', async () => {
     admin = (await setUpHub()).token;
     const venueId = (await call('/api/admin/venues', { token: admin })).body[0].id;
     const date = new Date().toISOString().slice(0, 10);
@@ -74,9 +74,25 @@ describe('session card numbers', () => {
     });
     expect(bad.status).toBe(400);
 
-    // Close the first job, and its number can be handed out again.
+    // Finishing the repair no longer frees the card: the visitor still has it
+    // until they collect the item at the exit.
     await call(`/api/repairer/jobs/${first.body.id}/accept`, { method: 'PATCH', token: repairer });
     await call(`/api/repairer/jobs/${first.body.id}/complete`, { method: 'PATCH', token: repairer, json: { outcome: 'completed' } });
+    const stillOut = await call('/api/repairer/checkin', {
+      token: repairer,
+      json: { itemDescription: 'Fan', faultDescription: 'Rattles', cardNumber: 7 },
+    });
+    expect(stillOut.status).toBe(409);
+    expect(stillOut.body.code).toBe('checkin/card_in_use');
+
+    // Giving the card back at the exit frees the number.
+    const givenBack = await call(`/api/repairer/jobs/${first.body.id}/card-return`, {
+      method: 'PATCH',
+      token: repairer,
+      json: { returned: true },
+    });
+    expect(givenBack.status).toBe(200);
+    expect(givenBack.body.cardReturnedAt).toBeTruthy();
     const reuse = await call('/api/repairer/checkin', {
       token: repairer,
       json: { itemDescription: 'Fan', faultDescription: 'Rattles', cardNumber: 7 },
@@ -93,9 +109,20 @@ describe('session card numbers', () => {
     expect(moved.status).toBe(409);
     expect(moved.body.code).toBe('checkin/card_in_use');
 
-    // Opening the kettle again, while its card 7 is now with the fan.
+    // Reopening the kettle does not reclaim its old card 7: it was handed
+    // back, and the fan now has it.
     const reopened = await call(`/api/admin/repairs/${firstId}`, { method: 'PATCH', token: admin, json: { status: 'waiting' } });
-    expect(reopened.status).toBe(409);
+    expect(reopened.status).toBe(200);
+    expect(reopened.body.cardReturnedAt).toBeTruthy();
+
+    // Marking the kettle's card as still out would take the fan's number.
+    const reclaimed = await call(`/api/repairer/jobs/${firstId}/card-return`, {
+      method: 'PATCH',
+      token: repairer,
+      json: { returned: false },
+    });
+    expect(reclaimed.status).toBe(409);
+    expect(reclaimed.body.code).toBe('checkin/card_in_use');
 
     // Saving the fan with its own number is fine.
     const same = await call(`/api/admin/repairs/${reuseId}`, { method: 'PATCH', token: admin, json: { cardNumber: 7 } });

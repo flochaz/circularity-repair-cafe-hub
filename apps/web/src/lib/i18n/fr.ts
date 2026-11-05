@@ -27,6 +27,10 @@ export const fr: Record<string, string> = {
   'Is this their first visit?': 'Est-ce sa première visite ?',
   'Card number': 'Numéro de carte',
   'Card {n}': 'Carte {n}',
+  'Card {n} was given back': 'La carte {n} a été rendue',
+  'Tick this when the visitor collects their item and hands the card back. The number is then free for another visitor.':
+    'Cochez ceci lorsque le visiteur récupère son objet et rend la carte. Le numéro est alors libre pour un autre visiteur.',
+  'Could not save the card': 'Impossible d’enregistrer la carte',
   'The visitor keeps card {number}, and we call them by that number. Write the job number on the item\'s tag, so we can match the item back to them.':
     'Le visiteur garde la carte {number} et nous l’appelons par ce numéro. Écrivez le numéro de fiche sur l’étiquette de l’objet, pour que nous puissions le retrouver.',
   'Add your email above to receive the newsletter.': 'Indiquez votre e-mail ci-dessus pour recevoir la newsletter.',

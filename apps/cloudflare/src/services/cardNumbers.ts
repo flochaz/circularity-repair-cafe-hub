@@ -1,21 +1,13 @@
-import { db, inList } from '../db/index.js';
+import { db } from '../db/index.js';
 import { repairJobs } from '../db/schema.js';
-import { and, eq, ne } from 'drizzle-orm';
+import { and, eq, isNull, ne } from 'drizzle-orm';
 
 /**
- * The statuses in which a visitor still holds their numbered card. A card is
- * handed back when the item leaves, so a number is only taken while its job
- * is in one of these. The unique index in migrations/0006_session_card_number
- * uses the same list.
- */
-export const CARD_OPEN_STATUSES = ['waiting', 'in_progress', 'awaiting_return'] as const;
-
-export function holdsCard(status: string): boolean {
-  return (CARD_OPEN_STATUSES as readonly string[]).includes(status);
-}
-
-/**
- * Whether another open job in this session already has this card number.
+ * Whether another job in this session still has this card number out. A card
+ * is handed back at the exit, not when the repair is marked finished, so the
+ * number stays in use until card_returned_at is set. The unique index in
+ * migration 0014 uses the same rule.
+ *
  * Pass the job's own id when changing an existing job, so it does not clash
  * with itself.
  */
@@ -23,7 +15,7 @@ export async function cardInUse(eventId: string, cardNumber: number, exceptJobId
   const conditions = [
     eq(repairJobs.eventId, eventId),
     eq(repairJobs.cardNumber, cardNumber),
-    inList(repairJobs.status, [...CARD_OPEN_STATUSES]),
+    isNull(repairJobs.cardReturnedAt),
   ];
   if (exceptJobId) conditions.push(ne(repairJobs.id, exceptJobId));
   const clash = await db.select({ id: repairJobs.id }).from(repairJobs).where(and(...conditions)).limit(1);

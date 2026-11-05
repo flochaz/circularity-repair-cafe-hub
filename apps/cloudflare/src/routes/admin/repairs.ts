@@ -6,7 +6,7 @@ import { and, asc, count, desc, eq, inArray, like, or, sql } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/sqlite-core';
 import { needsPatTest, repairUpdateSchema } from '@circularity/shared';
 import { cafeFeatures } from '../../services/preRegistration.js';
-import { cardInUse, cardInUseError, holdsCard } from '../../services/cardNumbers.js';
+import { cardInUse, cardInUseError } from '../../services/cardNumbers.js';
 import { audit } from '../../utils/audit.js';
 import { repairerSummary } from '../../utils/users.js';
 import { deleteImage } from '../../services/imageUpload.js';
@@ -139,7 +139,7 @@ export async function adminRepairsRoutes(app: App): Promise<void> {
     }
     const data = parsed.data;
     const [existing] = await db
-      .select({ status: repairJobs.status, eventId: repairJobs.eventId, cardNumber: repairJobs.cardNumber })
+      .select({ status: repairJobs.status, eventId: repairJobs.eventId, cardNumber: repairJobs.cardNumber, cardReturnedAt: repairJobs.cardReturnedAt })
       .from(repairJobs)
       .where(eq(repairJobs.id, id))
       .limit(1);
@@ -147,13 +147,14 @@ export async function adminRepairsRoutes(app: App): Promise<void> {
       reply.code(404).send({ error: 'Repair not found', code: 'repair/not_found' });
       return;
     }
-    // A card number must not clash with another open repair in the same
-    // session. Check before saving, both when the number changes and when a
-    // finished repair is opened again, as its number may have been reused.
-    if (data.cardNumber !== undefined || data.status !== undefined) {
+    // A card number must not clash with another card that is still out in the
+    // same session. Finishing a repair no longer frees the card; the exit
+    // toggle does.
+    if (data.cardNumber !== undefined || data.cardReturned !== undefined) {
       const card = data.cardNumber !== undefined ? data.cardNumber : existing.cardNumber;
-      const status = data.status ?? existing.status;
-      if (card != null && holdsCard(status) && (await cardInUse(existing.eventId, card, id))) {
+      const returned =
+        data.cardReturned !== undefined ? data.cardReturned : existing.cardReturnedAt !== null;
+      if (card != null && !returned && (await cardInUse(existing.eventId, card, id))) {
         reply.code(409).send(cardInUseError(card));
         return;
       }
@@ -167,6 +168,9 @@ export async function adminRepairsRoutes(app: App): Promise<void> {
     }
     if (data.weightKg !== undefined) {
       update.weightKg = data.weightKg !== null ? String(data.weightKg) : null;
+    }
+    if (data.cardReturned !== undefined) {
+      update.cardReturnedAt = data.cardReturned ? new Date() : null;
     }
     // Stamp completed_at only when the job actually *transitions* into a terminal
     // state (completed / cannot_repair). Re-saving an already-terminal job (e.g.

@@ -46,6 +46,8 @@
     satisfaction: '' as '' | 'satisfied' | 'not_satisfied',
     satisfactionComment: '',
     cardNumber: '' as string | number,
+    /** The visitor handed the card back at the exit. */
+    cardReturned: false,
     status: 'waiting',
   };
 
@@ -72,6 +74,7 @@
       satisfaction: detail.job.satisfaction ?? '',
       satisfactionComment: detail.job.satisfactionComment ?? '',
       cardNumber: detail.job.cardNumber ?? '',
+      cardReturned: detail.job.cardReturnedAt != null,
       status: detail.job.status,
     };
   }
@@ -100,6 +103,7 @@
           satisfaction: form.satisfaction || null,
           satisfactionComment: form.satisfactionComment || null,
           cardNumber: form.cardNumber === '' ? null : Number(form.cardNumber),
+          cardReturned: form.cardNumber === '' ? false : form.cardReturned,
         },
       });
       await load();
@@ -235,6 +239,19 @@
     {#if $cafe?.cardNumbersEnabled || form.cardNumber !== ''}
       <div class="grid sm:grid-cols-2 gap-3">
         <div><label class="label" for="cn2">Card number</label><input id="cn2" class="input" type="number" min="1" max="999" bind:value={form.cardNumber} /></div>
+        {#if form.cardNumber !== ''}
+          <div class="sm:col-span-2">
+            <label class="flex items-start gap-2 text-sm">
+              <input type="checkbox" class="mt-1" bind:checked={form.cardReturned} />
+              <span>
+                Card given back
+                <span class="block text-xs text-slate-500">
+                  The number is free for another visitor. Finishing a repair does not release it.
+                </span>
+              </span>
+            </label>
+          </div>
+        {/if}
       </div>
     {/if}
     <div>
