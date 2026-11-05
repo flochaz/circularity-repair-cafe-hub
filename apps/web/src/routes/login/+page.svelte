@@ -7,6 +7,7 @@
   import { safeNext } from '$lib/staff/nav';
   import { LogIn, KeyRound } from 'lucide-svelte';
   import { t, tNow } from '$lib/i18n';
+  import LanguageSwitch from '$lib/components/LanguageSwitch.svelte';
 
   // Two ways in: sign in with an existing password, or — first time only —
   // claim an account the café imported by choosing a password. No reset link
@@ -86,6 +87,7 @@
 
 <main class="min-h-screen grid place-items-center bg-slate-100 px-4 py-12">
   <form on:submit={submit} class="card p-8 w-full max-w-sm">
+    <div class="mb-3 flex justify-end"><LanguageSwitch /></div>
     <h1 class="text-2xl font-semibold">{mode === 'activate' ? $t('Choose your password') : $t('Sign in')}</h1>
     <p class="mt-1 text-sm text-slate-600">
       {mode === 'activate'

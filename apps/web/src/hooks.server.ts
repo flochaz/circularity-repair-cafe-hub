@@ -2,19 +2,14 @@ import type { Handle, HandleFetch } from '@sveltejs/kit';
 import { env } from '$env/dynamic/private';
 
 /**
- * Which language to show. A setting of 'en' or 'fr' forces one; 'auto' (the
- * default) follows the browser's Accept-Language, with English as the fallback.
+ * Which language to show. An explicit choice — the `lang` cookie written by the
+ * selector — wins. Then the deployment's LANGUAGE setting. Otherwise French,
+ * whatever the browser or operating system asks for.
  */
-function pickLocale(acceptLanguage: string | null, setting: string): 'en' | 'fr' {
+function pickLocale(cookie: string | undefined, setting: string): 'en' | 'fr' {
+  if (cookie === 'en' || cookie === 'fr') return cookie;
   if (setting === 'en' || setting === 'fr') return setting;
-  const header = (acceptLanguage ?? '').toLowerCase();
-  const first = header.split(',')[0]?.trim() ?? '';
-  if (first.startsWith('fr')) return 'fr';
-  if (first.startsWith('en')) return 'en';
-  // The first tag is something else: use French if it comes before English.
-  const fr = header.indexOf('fr');
-  const en = header.indexOf('en');
-  return fr !== -1 && (en === -1 || fr < en) ? 'fr' : 'en';
+  return 'fr';
 }
 
 // Only the pages that actually have French translations follow the browser.
@@ -28,7 +23,7 @@ const TRANSLATED = /^\/(checkin|track|repairer|login|reset|rota|display)(\/|$)/;
 // what tells screen readers and search engines what the page is in. The value
 // is also handed to the app (see routes/+layout.server.ts).
 export const handle: Handle = async ({ event, resolve }) => {
-  const requested = pickLocale(event.request.headers.get('accept-language'), (env.LANGUAGE ?? 'auto').toLowerCase());
+  const requested = pickLocale(event.cookies.get('lang'), (env.LANGUAGE ?? '').toLowerCase());
   const locale = TRANSLATED.test(event.url.pathname) ? requested : 'en';
   event.locals.locale = locale;
   return resolve(event, {

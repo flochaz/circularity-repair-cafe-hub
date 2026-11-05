@@ -13,9 +13,10 @@ import { fr } from './fr';
 
 export type Locale = 'en' | 'fr';
 
-/** Languages we can show. English is always the fallback. */
+/** Languages we can show. A missing translation falls back to the English source. */
 export const LOCALES: readonly Locale[] = ['en', 'fr'];
-export const DEFAULT_LOCALE: Locale = 'en';
+/** French by default; the selector and the LANGUAGE setting can change it. */
+export const DEFAULT_LOCALE: Locale = 'fr';
 
 /** Filled in per language. English is the source text itself, so it is not here. */
 const dictionaries: Partial<Record<Locale, Record<string, string>>> = { fr };

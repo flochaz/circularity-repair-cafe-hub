@@ -343,6 +343,7 @@ export const fr: Record<string, string> = {
   // ── Sign in ────────────────────────────────────────────────────────
   'Could not sign in': 'Connexion impossible',
   'Sign in': 'Connexion',
+  Language: 'Langue',
   'For repairers and admins.': 'Pour les réparateurs et les administrateurs.',
   'Sign in to carry on where you were.': 'Connectez-vous pour reprendre où vous en étiez.',
   Email: 'E-mail',
