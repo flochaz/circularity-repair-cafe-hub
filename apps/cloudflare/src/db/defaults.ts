@@ -13,10 +13,8 @@ export const DEFAULT_CATEGORIES: Array<{ name: string; icon: string; colour: str
   { name: 'Small appliances', icon: 'plug', colour: '#f97316', isElectrical: true },
   { name: 'Clothing & textiles', icon: 'shirt', colour: '#ec4899' },
   { name: 'Bicycles', icon: 'bike', colour: '#22c55e' },
-  { name: 'Furniture & wood', icon: 'armchair', colour: '#a16207' },
   { name: 'Toys', icon: 'toy-brick', colour: '#eab308' },
   { name: 'Tools', icon: 'wrench', colour: '#6366f1' },
-  { name: 'Jewellery', icon: 'gem', colour: '#8b5cf6' },
   { name: 'Books & paper', icon: 'book-open', colour: '#0d9488' },
   { name: 'Other', icon: 'help-circle', colour: '#64748b' },
 ];

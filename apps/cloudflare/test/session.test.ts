@@ -72,7 +72,10 @@ describe('a repair session from start to finish', () => {
     expect(res.body.gallery).toEqual([]);
     expect(res.body.pwaIconVersion).toMatch(/^[0-9a-f]{10}$/);
     const cats = await call('/api/public/skill-categories');
-    expect(cats.body.length).toBe(10);
+    expect(cats.body.length).toBe(8);
+    const categoryNames = cats.body.map((c: any) => c.name);
+    expect(categoryNames).not.toContain('Jewellery');
+    expect(categoryNames).not.toContain('Furniture & wood');
     state.categoryId = cats.body.find((c: any) => c.name === 'Small appliances').id;
     const factors = await call('/api/public/co2-factors');
     expect(factors.body.factors.length).toBeGreaterThan(30);
@@ -112,7 +115,7 @@ describe('a repair session from start to finish', () => {
     const page = await call(`/api/checkin/${state.checkInToken}`);
     expect(page.status).toBe(200);
     expect(page.body.event.name).toBe('October Repair Café');
-    expect(page.body.categories.length).toBe(10);
+    expect(page.body.categories.length).toBe(8);
 
     const res = await call(`/api/checkin/${state.checkInToken}/jobs`, {
       json: {

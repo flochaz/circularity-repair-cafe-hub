@@ -10,6 +10,7 @@ beforeAll(freshHub);
 describe('check-in details', () => {
   let admin = '';
   let checkInToken = '';
+  let repairer = '';
 
   it('keeps weight and first-visit from a public check-in', async () => {
     admin = (await setUpHub()).token;
@@ -45,8 +46,9 @@ describe('check-in details', () => {
       token: admin,
       json: { email: 'fixer@example.org', displayName: 'Ada Fixwell', role: 'repairer' },
     });
-    const repairer = (await call(`/api/auth/reset/${user.body.resetToken}`, { json: { password: 'Soldering1Iron' } })).body
+    const repairerToken = (await call(`/api/auth/reset/${user.body.resetToken}`, { json: { password: 'Soldering1Iron' } })).body
       .accessToken;
+    repairer = repairerToken;
 
     const job = await call('/api/repairer/checkin', {
       token: repairer,
@@ -64,6 +66,37 @@ describe('check-in details', () => {
     await call(`/api/admin/repairs/${job.body.id}`, { method: 'PATCH', token: admin, json: { status: 'completed' } });
     stats = await call('/api/admin/stats/overview', { token: admin });
     expect(stats.body.fixedWeightKg).toBeCloseTo(3.5, 2);
+  });
+
+  it('records the customer details a staff-assisted check-in collects', async () => {
+    const job = await call('/api/repairer/checkin', {
+      token: repairer,
+      json: {
+        itemDescription: 'Lamp',
+        faultDescription: 'Broken switch',
+        customerName: 'Ada Lovelace',
+        customerContact: '0600000000',
+        customerEmail: 'Ada@Example.org',
+        gdprConsent: true,
+        newsletterOptIn: true,
+        newsletterEmail: 'Ada@Example.org',
+      },
+    });
+    expect(job.status).toBe(200);
+    const stored = await call(`/api/admin/repairs/${job.body.id}`, { token: admin });
+    expect(stored.body.job.customerName).toBe('Ada Lovelace');
+    expect(stored.body.job.customerContact).toBe('0600000000');
+    expect(stored.body.job.customerEmail).toBe('ada@example.org');
+    expect(stored.body.job.newsletterOptIn).toBe(true);
+    expect(stored.body.job.newsletterEmail).toBe('ada@example.org');
+  });
+
+  it('needs consent when a staff-assisted check-in records an email', async () => {
+    const res = await call('/api/repairer/checkin', {
+      token: repairer,
+      json: { itemDescription: 'Radio', faultDescription: 'Dead', customerEmail: 'visitor@example.org' },
+    });
+    expect(res.status).toBe(400);
   });
 
   it('keeps "not answered" apart from "not a first visit"', async () => {

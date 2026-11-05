@@ -34,6 +34,7 @@ import m0009Setup from './migrations/0009_setup_done_marker.js';
 import m0010Email from './migrations/0010_customer_email.js';
 import m0010Telemetry from './migrations/0010_telemetry_claim.js';
 import m0011Electrical from './migrations/0011_pre_registration_electrical.js';
+import m0012Categories from './migrations/0012_hide_rare_categories.js';
 
 const MIGRATIONS: Array<{ id: string; sql: string }> = [
   { id: '0001_init', sql: m0001 },
@@ -51,6 +52,7 @@ const MIGRATIONS: Array<{ id: string; sql: string }> = [
   { id: '0010_customer_email', sql: m0010Email },
   { id: '0010_telemetry_claim', sql: m0010Telemetry },
   { id: '0011_pre_registration_electrical', sql: m0011Electrical },
+  { id: '0012_hide_rare_categories', sql: m0012Categories },
 ];
 
 /** Split a migration into statements. Our SQL never puts ";" inside a string. */

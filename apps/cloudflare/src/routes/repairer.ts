@@ -241,7 +241,7 @@ export async function repairerRoutes(app: App): Promise<void> {
     const customerContact = data.customerContact?.trim() || null;
     const customerEmail = data.customerEmail?.trim().toLowerCase() || null;
     // Only record consent when we are actually storing something personal.
-    const hasPii = Boolean(customerName) || Boolean(customerContact);
+    const hasPii = Boolean(customerName) || Boolean(customerContact) || Boolean(customerEmail);
     const gdprConsent = hasPii ? data.gdprConsent === true : false;
     // Newsletter consent is separate from consent to store the repair.
     const newsletterOptIn = data.newsletterOptIn === true;

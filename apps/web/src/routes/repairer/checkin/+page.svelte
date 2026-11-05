@@ -6,7 +6,7 @@
   import CameraCapture from '$lib/components/CameraCapture.svelte';
   import { cafe } from '$lib/stores/cafe';
   import { firstName } from '$lib/staff/queue';
-  import { UserPlus, CheckCircle2, Plus, ArrowLeft, CalendarClock, CalendarOff, Search, X } from 'lucide-svelte';
+  import { UserPlus, CheckCircle2, Plus, ArrowLeft, CalendarClock, CalendarOff, Search, X, Camera as CameraIcon } from 'lucide-svelte';
   import { t, tNow } from '$lib/i18n';
 
   interface SkillCategory { id: string; name: string; icon: string; colour: string }
@@ -27,13 +27,16 @@
   let faultDescription = '';
   // Customer (all optional for a walk-in)
   let customerName = '';
-  let customerContact = '';
+  let customerLastName = '';
+  let customerPhone = '';
+  let customerEmail = '';
   let consent = false;
-  // Newsletter consent is separate from the consent to store the repair.
+  // Newsletter consent is separate from the consent to store the repair. It is
+  // never pre-ticked, and it needs an email address.
   let newsletterOptIn = false;
-  let newsletterEmail = '';
 
   // Optional item photo, captured in-page and held until the job exists.
+  let showPhoto = false;
   let photoBlob: Blob | null = null;
   let photoPreview: string | null = null;
   let photoWarning = '';
@@ -102,7 +105,20 @@
   }
 
   // Consent is only meaningful once we're actually storing a name/contact.
-  $: hasPii = customerName.trim().length > 0 || customerContact.trim().length > 0;
+  $: hasPii =
+    customerName.trim().length > 0 ||
+    customerLastName.trim().length > 0 ||
+    customerPhone.trim().length > 0 ||
+    customerEmail.trim().length > 0;
+
+  /** A simple check: the newsletter box only works with a real-looking address. */
+  function isValidEmail(value: string): boolean {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
+  }
+
+  // Ticking the newsletter is only possible with an email. If the address is
+  // cleared or becomes invalid, the consent goes with it.
+  $: if (!isValidEmail(customerEmail)) newsletterOptIn = false;
 
   function onPhoto(e: CustomEvent<{ blob: Blob; previewUrl: string }>) {
     if (photoPreview) URL.revokeObjectURL(photoPreview);
@@ -173,14 +189,18 @@
     error = '';
     if (!itemDescription.trim()) return (error = tNow('Please describe the item'));
     if (!faultDescription.trim()) return (error = tNow("Please describe what's wrong with it"));
+    if (customerEmail.trim() && !isValidEmail(customerEmail)) {
+      return (error = tNow('Please check the email address'));
+    }
     if (hasPii && !consent) {
       return (error = tNow('Please confirm the customer is happy for their details to be stored'));
     }
-    if (newsletterOptIn && !newsletterEmail.trim()) {
-      return (error = tNow('Please add an email for the newsletter'));
-    }
     busy = true;
     try {
+      const fullName = [customerName, customerLastName]
+        .map((part) => part.trim())
+        .filter(Boolean)
+        .join(' ');
       const payload: Record<string, unknown> = {
         itemDescription: itemDescription.trim(),
         faultDescription: faultDescription.trim(),
@@ -189,11 +209,12 @@
         weightKg: $cafe?.weighItemsEnabled ? weightValue() : null,
         isFirstVisit: $cafe?.askFirstVisitEnabled ? isFirstVisit : null,
         cardNumber: $cafe?.cardNumbersEnabled ? cardNumber : null,
-        customerName: customerName.trim() || null,
-        customerContact: customerContact.trim() || null,
+        customerName: fullName || null,
+        customerContact: customerPhone.trim() || null,
+        customerEmail: customerEmail.trim() || null,
         gdprConsent: hasPii ? consent : false,
-        newsletterOptIn,
-        newsletterEmail: newsletterOptIn ? newsletterEmail.trim() || null : null,
+        newsletterOptIn: newsletterOptIn && isValidEmail(customerEmail),
+        newsletterEmail: newsletterOptIn ? customerEmail.trim() : null,
       };
       const res = await api<{ id: string; jobNumber: string }>('/api/repairer/checkin', { method: 'POST', json: payload });
       // Photo is optional and must attach to the created job, so upload after.
@@ -232,18 +253,20 @@
     void refreshCards();
     faultDescription = '';
     customerName = '';
-    customerContact = '';
+    customerLastName = '';
+    customerPhone = '';
+    customerEmail = '';
     consent = false;
     newsletterOptIn = false;
-    newsletterEmail = '';
+    showPhoto = false;
     removePhoto();
     photoWarning = '';
     error = '';
   }
 </script>
 
-<div class="max-w-2xl mx-auto">
-  <a href="/repairer" class="inline-flex items-center gap-1 text-sm text-slate-500 hover:text-slate-700">
+<div class="max-w-4xl mx-auto">
+  <a href="/repairer" class="inline-flex items-center gap-1 text-sm text-slate-500 hover:text-slate-700 lg:hidden">
     <ArrowLeft size={16} /> {$t('Back to the queue')}
   </a>
 
@@ -327,145 +350,154 @@
       </section>
     {/if}
 
-    <header class="mt-4">
+    <header class="mt-3">
       <h1 class="text-2xl font-bold flex items-center gap-2"><UserPlus size={22} /> {$t('Register a repair')}</h1>
-      <p class="mt-1 text-slate-600">{$t("For a visitor who can't check in on their own device.")}</p>
-      <p class="mt-1 text-sm text-slate-500">{activeEvent.name}{#if activeEvent.venueName} · {activeEvent.venueName}{/if}</p>
+      <p class="mt-1 text-sm text-slate-600">{$t("For a visitor who can't check in on their own device.")} · {activeEvent.name}{#if activeEvent.venueName} · {activeEvent.venueName}{/if}</p>
     </header>
 
-    <form class="card p-6 mt-4 space-y-6" on:submit|preventDefault={submit}>
+    <form class="card p-4 mt-4" on:submit|preventDefault={submit}>
+      <div class="grid lg:grid-cols-2 gap-x-6 gap-y-4 items-start">
+        <div class="space-y-3">
+      <!-- Customer first: the visitor is standing in front of the volunteer. -->
+      <fieldset>
+        <legend class="text-sm font-semibold text-slate-700">{$t('About the customer')} <span class="font-normal text-slate-400">{$t('(optional)')}</span></legend>
+        <p class="text-sm text-slate-500 mt-1">{$t('Leave blank to register the item anonymously.')}</p>
+        <div class="mt-3 grid sm:grid-cols-2 gap-3">
+          <div>
+            <label class="label" for="cn">{$t('First name')}</label>
+            <input id="cn" class="input" maxlength="50" bind:value={customerName} autocomplete="off" />
+          </div>
+          <div>
+            <label class="label" for="cln">{$t('Last name')} <span class="font-normal text-slate-400">{$t('(optional)')}</span></label>
+            <input id="cln" class="input" maxlength="50" bind:value={customerLastName} autocomplete="off" />
+          </div>
+          <div>
+            <label class="label" for="cp">{$t('Phone number')} <span class="font-normal text-slate-400">{$t('(optional)')}</span></label>
+            <input id="cp" class="input" type="tel" maxlength="50" bind:value={customerPhone} autocomplete="off" />
+          </div>
+          <div>
+            <label class="label" for="ce">{$t('Email address')} <span class="font-normal text-slate-400">{$t('(optional)')}</span></label>
+            <input id="ce" class="input" type="email" maxlength="200" bind:value={customerEmail} autocomplete="off" />
+          </div>
+        </div>
+        {#if hasPii}
+          <label class="flex items-start gap-3 mt-3 cursor-pointer">
+            <input type="checkbox" class="h-5 w-5 rounded border-slate-300 text-brand-600 mt-0.5" bind:checked={consent} />
+            <span class="text-sm text-slate-700">{$t("I've asked, and the customer is happy for their details to be stored for this repair.")}</span>
+          </label>
+        {/if}
+        <label class="flex items-start gap-3 mt-3 cursor-pointer {isValidEmail(customerEmail) ? '' : 'opacity-60'}" title={isValidEmail(customerEmail) ? '' : $t('Add an email to enable this.')}>
+          <input type="checkbox" class="h-5 w-5 rounded border-slate-300 text-brand-600 mt-0.5" bind:checked={newsletterOptIn} disabled={!isValidEmail(customerEmail)} />
+          <span class="text-sm text-slate-700">
+            {$t('The customer asked to receive the association newsletter (about once a month). They can unsubscribe at any time.')}
+          </span>
+        </label>
+      </fieldset>
+
+      {#if $cafe?.cardNumbersEnabled || $cafe?.askFirstVisitEnabled}
+        <div class="grid sm:grid-cols-2 gap-4 border-t border-slate-200 pt-4">
+          {#if $cafe?.cardNumbersEnabled}
+            <div>
+              <label class="label" for="card">{$t('Card number')} <span class="font-normal text-slate-400">{$t('(optional)')}</span></label>
+              <select id="card" class="input" bind:value={cardNumber}>
+                <option value={null}>{$t('No card')}</option>
+                {#each CARD_NUMBERS as n}
+                  <option value={n} disabled={takenCards.includes(n)}>
+                    {takenCards.includes(n) ? $t('{n} (in use)', { n }) : n}
+                  </option>
+                {/each}
+              </select>
+              <p class="mt-1 text-xs text-slate-500">{$t('Numbers already in use are greyed out.')}</p>
+            </div>
+          {/if}
+          {#if $cafe?.askFirstVisitEnabled}
+            <fieldset>
+              <legend class="label">{$t('First visit?')} <span class="font-normal text-slate-400">{$t('(optional)')}</span></legend>
+              <div class="flex gap-2">
+                {#each [[true, 'Yes'], [false, 'No']] as [value, text]}
+                  <button
+                    type="button"
+                    class="flex-1 rounded-lg py-2 text-sm font-semibold ring-1 transition {isFirstVisit === value
+                      ? 'ring-2 ring-brand-600 bg-brand-50 text-brand-800'
+                      : 'ring-slate-200 bg-white text-slate-700 hover:bg-slate-50'}"
+                    aria-pressed={isFirstVisit === value}
+                    on:click={() => (isFirstVisit = isFirstVisit === value ? null : (value as boolean))}
+                  >{$t(String(text))}</button>
+                {/each}
+              </div>
+            </fieldset>
+          {/if}
+        </div>
+      {/if}
+        </div>
+
+        <div class="space-y-3">
       <!-- Item type -->
       {#if categories.length}
-        <div>
+        <div class="border-t border-slate-200 pt-4">
           <p class="label">{$t('What type of item is it?')} <span class="font-normal text-slate-400">{$t('(optional)')}</span></p>
-          <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 mt-1">
+          <div class="grid grid-cols-4 gap-1.5 mt-1">
             {#each categories as cat}
               <button
                 type="button"
-                class="card p-3 text-center transition-shadow {itemCategoryId === cat.id ? 'ring-2 ring-brand-600 bg-brand-50' : 'hover:ring-brand-400'}"
+                class="card px-1 py-1.5 text-center transition-shadow {itemCategoryId === cat.id ? 'ring-2 ring-brand-600 bg-brand-50' : 'hover:ring-brand-400'}"
                 on:click={() => (itemCategoryId = itemCategoryId === cat.id ? null : cat.id)}
               >
-                <span class="icon-chip" style="background-color: {cat.colour}">
-                  <Icon icon={categoryIcon(cat.icon, cat.name)} width="24" height="24" />
+                <span class="inline-flex h-7 w-7 items-center justify-center rounded-lg text-white" style="background-color: {cat.colour}">
+                  <Icon icon={categoryIcon(cat.icon, cat.name)} width="15" height="15" />
                 </span>
-                <span class="block mt-1.5 font-medium text-sm">{$t(cat.name)}</span>
+                <span class="block mt-0.5 font-medium text-[0.65rem] leading-tight">{$t(cat.name)}</span>
               </button>
             {/each}
           </div>
         </div>
       {/if}
 
-      <!-- Card number: the number on the card handed to the visitor. -->
-      {#if $cafe?.cardNumbersEnabled}
-      <div>
-        <p class="label">{$t('Card number')} <span class="font-normal text-slate-400">{$t('(optional)')}</span></p>
-        <p class="text-sm text-slate-500 mb-2">{$t('Tap the number on the card you gave the visitor. Numbers already in use are greyed out.')}</p>
-        <div class="grid grid-cols-10 gap-1.5">
-          {#each CARD_NUMBERS as n}
-            <button
-              type="button"
-              class="rounded-lg py-1.5 text-sm font-semibold ring-1 transition {cardNumber === n ? 'ring-2 ring-brand-600 bg-brand-50 text-brand-800' : takenCards.includes(n) ? 'ring-slate-100 bg-slate-100 text-slate-300' : 'ring-slate-200 bg-white hover:bg-slate-50 text-slate-700'}"
-              disabled={takenCards.includes(n)}
-              on:click={() => (cardNumber = cardNumber === n ? null : n)}
-            >{n}</button>
-          {/each}
+      <div class="grid sm:grid-cols-2 gap-3 border-t border-slate-200 pt-4">
+        <div class="sm:col-span-2">
+          <label class="label" for="item">{$t('Item description')}</label>
+          <input id="item" class="input" maxlength="200" placeholder={$t('e.g. Bosch cordless drill, blue')} bind:value={itemDescription} />
         </div>
-      </div>
-      {/if}
-
-      <div>
-        <label class="label" for="item">{$t('Item description')}</label>
-        <input id="item" class="input" maxlength="200" placeholder={$t('e.g. Bosch cordless drill, blue')} bind:value={itemDescription} />
-      </div>
-
-      <div>
-        <label class="label" for="brand">{$t('Brand')} <span class="font-normal text-slate-400">{$t('(optional)')}</span></label>
-        <input id="brand" class="input" maxlength="100" bind:value={itemBrand} />
-      </div>
-
-      {#if $cafe?.weighItemsEnabled}
         <div>
-          <label class="label" for="weight">{$t('Weight in kg')} <span class="font-normal text-slate-400">{$t('(optional)')}</span></label>
-          <input id="weight" type="text" inputmode="decimal" class="input" placeholder={$t('e.g. 1.5')} bind:value={weightKg} />
+          <label class="label" for="brand">{$t('Brand')} <span class="font-normal text-slate-400">{$t('(optional)')}</span></label>
+          <input id="brand" class="input" maxlength="100" bind:value={itemBrand} />
         </div>
-      {/if}
-
-      {#if $cafe?.askFirstVisitEnabled}
-        <fieldset>
-          <legend class="label">{$t('Is this their first visit?')} <span class="font-normal text-slate-400">{$t('(optional)')}</span></legend>
-          <div class="flex gap-2">
-            {#each [[true, 'Yes'], [false, 'No']] as [value, text]}
-              <button
-                type="button"
-                class="flex-1 rounded-lg py-2 text-sm font-semibold ring-1 transition {isFirstVisit === value
-                  ? 'ring-2 ring-brand-600 bg-brand-50 text-brand-800'
-                  : 'ring-slate-200 bg-white text-slate-700 hover:bg-slate-50'}"
-                aria-pressed={isFirstVisit === value}
-                on:click={() => (isFirstVisit = isFirstVisit === value ? null : (value as boolean))}
-              >{$t(String(text))}</button>
-            {/each}
+        {#if $cafe?.weighItemsEnabled}
+          <div>
+            <label class="label" for="weight">{$t('Weight in kg')} <span class="font-normal text-slate-400">{$t('(optional)')}</span></label>
+            <input id="weight" type="text" inputmode="decimal" class="input" placeholder={$t('e.g. 1.5')} bind:value={weightKg} />
           </div>
-        </fieldset>
-      {/if}
+        {/if}
+      </div>
 
       <div>
         <label class="label" for="fault">{$t("What's wrong with it?")}</label>
-        <textarea id="fault" class="input" rows="3" maxlength="500" placeholder={$t("e.g. Won't turn on, battery seems dead")} bind:value={faultDescription}></textarea>
+        <textarea id="fault" class="input" rows="2" maxlength="500" placeholder={$t("e.g. Won't turn on, battery seems dead")} bind:value={faultDescription}></textarea>
       </div>
 
-      <!-- Photo (optional) -->
-      <div>
-        <p class="label">{$t('Photo')} <span class="font-normal text-slate-400">{$t('(optional)')}</span></p>
-        <p class="text-sm text-slate-500 mb-2">{$t("A photo helps repairers see what they'll be working on.")}</p>
-        {#if photoPreview}
-          <div class="flex items-start gap-3">
-            <img src={photoPreview} alt={$t('Item')} class="w-32 h-32 rounded-xl object-cover ring-1 ring-slate-200" />
-            <button type="button" class="btn-ghost btn-sm" on:click={removePhoto}><X size={16} /> {$t('Remove')}</button>
-          </div>
-        {:else}
-          <CameraCapture on:capture={onPhoto} maxLongestEdge={1200} quality={0.8} />
-        {/if}
-      </div>
-
-      <!-- Customer (optional) -->
-      <fieldset class="border-t border-slate-200 pt-5">
-        <legend class="text-sm font-semibold text-slate-700">{$t('About the customer')} <span class="font-normal text-slate-400">{$t('(optional)')}</span></legend>
-        <p class="text-sm text-slate-500 mt-1">{$t('Leave blank to register the item anonymously. The job number is enough to find them.')}</p>
-        <div class="mt-4 grid sm:grid-cols-2 gap-4">
-          <div>
-            <label class="label" for="cn">{$t('First name')}</label>
-            <input id="cn" class="input" maxlength="50" bind:value={customerName} autocomplete="off" />
-          </div>
-          <div>
-            <label class="label" for="cc">{$t('Phone or email')}</label>
-            <input id="cc" class="input" maxlength="100" bind:value={customerContact} autocomplete="off" />
-          </div>
-        </div>
-        {#if hasPii}
-          <label class="flex items-start gap-3 mt-4 cursor-pointer">
-            <input type="checkbox" class="h-5 w-5 rounded border-slate-300 text-brand-600 mt-0.5" bind:checked={consent} />
-            <span class="text-sm text-slate-700">{$t("I've asked, and the customer is happy for their details to be stored for this repair.")}</span>
-          </label>
-        {/if}
-        <div class="mt-4 rounded-xl border border-slate-200 p-4">
-          <label class="flex items-start gap-3 cursor-pointer">
-            <input type="checkbox" class="h-5 w-5 rounded border-slate-300 text-brand-600 mt-0.5" bind:checked={newsletterOptIn} />
-            <span class="text-sm text-slate-700">
-              {$t('The customer asked to receive the association newsletter (about once a month). They can unsubscribe at any time.')}
-            </span>
-          </label>
-          {#if newsletterOptIn}
-            <input
-              class="input mt-3"
-              type="email"
-              autocomplete="off"
-              placeholder={$t('Email for the newsletter')}
-              bind:value={newsletterEmail}
-            />
+      <!-- Photo (optional), folded away until it is needed. -->
+      <div class="border-t border-slate-200 pt-4">
+        <div class="flex items-center justify-between gap-2">
+          <p class="label !mb-0">{$t('Photo')} <span class="font-normal text-slate-400">{$t('(optional)')}</span></p>
+          {#if !showPhoto && !photoPreview}
+            <button type="button" class="btn-ghost btn-sm" on:click={() => (showPhoto = true)}><CameraIcon size={16} /> {$t('Add a photo')}</button>
           {/if}
         </div>
-      </fieldset>
+        {#if showPhoto || photoPreview}
+          <p class="text-sm text-slate-500 mt-1 mb-2">{$t("A photo helps repairers see what they'll be working on.")}</p>
+          {#if photoPreview}
+            <div class="flex items-start gap-3">
+              <img src={photoPreview} alt={$t('Item')} class="w-32 h-32 rounded-xl object-cover ring-1 ring-slate-200" />
+              <button type="button" class="btn-ghost btn-sm" on:click={removePhoto}><X size={16} /> {$t('Remove')}</button>
+            </div>
+          {:else}
+            <CameraCapture on:capture={onPhoto} maxLongestEdge={1200} quality={0.8} />
+          {/if}
+        {/if}
+      </div>
+        </div>
 
+        <div class="lg:col-span-2 space-y-3 border-t border-slate-200 pt-3">
       {#if error}<p class="text-sm text-rose-600">{error}</p>{/if}
 
       <div class="flex justify-end gap-3">
@@ -473,6 +505,8 @@
         <button type="submit" class="btn-primary" disabled={busy}>
           {busy ? $t('Registering…') : $t('Register repair')}
         </button>
+      </div>
+        </div>
       </div>
     </form>
   {/if}

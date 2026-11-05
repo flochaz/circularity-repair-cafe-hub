@@ -305,7 +305,7 @@
             <User size={16} class="text-slate-400 mt-0.5 shrink-0" />
             <div>
               <dt class="text-slate-500">{$t('Visitor')}</dt>
-              <dd class="text-slate-900">{detail.job.customerName ?? $t('Not given')}{#if detail.job.customerContact}<span class="block text-slate-600">{detail.job.customerContact}</span>{/if}</dd>
+              <dd class="text-slate-900">{detail.job.customerName ?? $t('Not given')}{#if detail.job.customerContact}<span class="block text-slate-600">{detail.job.customerContact}</span>{/if}{#if detail.job.customerEmail}<span class="block text-slate-600">{detail.job.customerEmail}</span>{/if}</dd>
             </div>
           </div>
           <div>

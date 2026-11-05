@@ -254,6 +254,11 @@ export const fr: Record<string, string> = {
   'Session number': 'Numéro de carte',
   'Tap the number on the card you gave the visitor. Numbers already in use are greyed out.':
     'Touchez le numéro de la carte que vous avez remise au visiteur. Les numéros déjà utilisés sont grisés.',
+  'No card': 'Pas de carte',
+  '{n} (in use)': '{n} (déjà pris)',
+  'Numbers already in use are greyed out.': 'Les numéros déjà utilisés apparaissent en grisé.',
+  'Add the email above to receive the newsletter.':
+    'Indiquez l’e-mail ci-dessus pour recevoir la newsletter.',
   Brand: 'Marque',
   'Weight in kg': 'Poids en kg',
   "This is the customer's first visit": 'C’est la première visite du client',
@@ -265,6 +270,9 @@ export const fr: Record<string, string> = {
   'About the customer': 'À propos du client',
   'Leave blank to register the item anonymously. The job number is enough to find them.':
     'Laissez vide pour enregistrer l’objet anonymement. Le numéro suffit à retrouver le client.',
+  'Leave blank to register the item anonymously.': 'Laissez vide pour enregistrer l’objet anonymement.',
+  'Add an email to enable this.': 'Indiquez un e-mail pour activer cette option.',
+  'First visit?': 'Première visite ?',
   'First name': 'Prénom',
   "I've asked, and the customer is happy for their details to be stored for this repair.":
     'J’ai demandé, et le client accepte que ses informations soient conservées pour cette réparation.',

@@ -147,7 +147,7 @@ export type CheckInSubmitPayload = z.infer<typeof checkInSubmitSchema>;
 // consent is only required when some personal detail is actually captured.
 export const assistedCheckInSchema = z
   .object({
-    customerName: z.string().max(50).optional().nullable(),
+    customerName: z.string().max(100).optional().nullable(),
     customerContact: z.string().max(100).optional().nullable(),
     customerEmail: z.string().email().max(200).optional().nullable(),
     gdprConsent: z.boolean().optional(),
@@ -172,7 +172,7 @@ export const assistedCheckInSchema = z
   })
   .refine(
     (v) => {
-      const hasPii = Boolean(v.customerName?.trim()) || Boolean(v.customerContact?.trim());
+      const hasPii = Boolean(v.customerName?.trim()) || Boolean(v.customerContact?.trim()) || Boolean(v.customerEmail?.trim());
       return !hasPii || v.gdprConsent === true;
     },
     {
