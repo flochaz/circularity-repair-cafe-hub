@@ -611,4 +611,22 @@ export const fr: Record<string, string> = {
   Toy: 'Jouet',
   Vacuum: 'Aspirateur',
   'Watch/clock': 'Montre/horloge',
+
+  // ── Volunteer station ──────────────────────────────────────────────
+  'Volunteer station': 'Poste bénévole',
+  'Who are you?': 'Qui êtes-vous ?',
+  'Tap your name to open the repair queue. No password needed.':
+    'Touchez votre nom pour ouvrir la file de réparation. Aucun mot de passe nécessaire.',
+  'Today: {name}': 'Aujourd’hui : {name}',
+  'Current session: {name}': 'Session en cours : {name}',
+  'Open the queue': 'Ouvrir la file',
+  'Opening…': 'Ouverture…',
+  'No volunteers are in the hub yet. Ask an organiser to add the team.':
+    'Aucun bénévole n’est encore dans le hub. Demandez à un organisateur d’ajouter l’équipe.',
+  'Organiser? Sign in with a password': 'Organisateur ? Se connecter avec un mot de passe',
+  'This volunteer link is not valid. Ask the organiser for the current one.':
+    'Ce lien bénévole n’est pas valide. Demandez le lien actuel à l’organisateur.',
+  'Could not load the volunteer list': 'Impossible de charger la liste des bénévoles',
+  'Could not open the queue. Try again.': 'Impossible d’ouvrir la file. Réessayez.',
+  'Switch volunteer': 'Changer de bénévole',
 };

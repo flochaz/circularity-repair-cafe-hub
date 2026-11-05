@@ -16,7 +16,7 @@
   import { auth } from '$lib/stores/auth';
   import { cafe } from '$lib/stores/cafe';
   import { homeFor, isAdminRole, isCurrent, navFor, tabsFor } from '$lib/staff/nav';
-  import { Globe, LogOut, Menu, ShieldAlert, Wrench, X } from 'lucide-svelte';
+  import { Globe, LogOut, Menu, ShieldAlert, Users, Wrench, X } from 'lucide-svelte';
   import LanguageSwitch from '$lib/components/LanguageSwitch.svelte';
   import { t } from '$lib/i18n';
 
@@ -26,6 +26,8 @@
   let ready = false;
   let drawerOpen = false;
   let signingOut = false;
+  /** Set when this device signed in from the volunteer station link. */
+  let stationToken = '';
 
   $: user = $auth?.user ?? null;
   $: admin = isAdminRole(user);
@@ -43,6 +45,11 @@
   }
 
   onMount(async () => {
+    try {
+      stationToken = localStorage.getItem('hub.station') ?? '';
+    } catch {
+      /* private mode; the station still works, it just has no switch link */
+    }
     // Wait for the session to be restored from the cookie before deciding
     // anyone is signed out, or every refresh would send people to sign in.
     await restoreSession();
@@ -60,6 +67,12 @@
     signingOut = true;
     await api('/api/auth/logout', { method: 'POST', autoRefresh: false }).catch(() => {});
     auth.set(null);
+    stationToken = '';
+    try {
+      localStorage.removeItem('hub.station');
+    } catch {
+      /* private mode */
+    }
     goto('/login', { replaceState: true });
   }
 </script>
@@ -100,6 +113,9 @@
           <p class="text-xs text-slate-500">{admin ? (user.role === 'super_admin' ? $t('Super admin') : $t('Admin')) : $t('Repairer')}</p>
         </div>
         <a href="/" class="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-700 hover:bg-slate-100"><Globe size={18} class="text-slate-400" /> {$t('View the website')}</a>
+        {#if stationToken}
+          <a href={`/station/${stationToken}`} class="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-700 hover:bg-slate-100"><Users size={18} class="text-slate-400" /> {$t('Switch volunteer')}</a>
+        {/if}
         <button type="button" on:click={signOut} class="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-slate-700 hover:bg-slate-100"><LogOut size={18} class="text-slate-400" /> {$t('Sign out')}</button>
         <div class="px-3 py-2"><LanguageSwitch /></div>
         {#if admin}
@@ -158,6 +174,9 @@
           </nav>
           <div class="border-t border-slate-200 p-3 space-y-1">
             <a href="/" class="flex items-center gap-3 px-3 py-3 rounded-lg text-slate-800 hover:bg-slate-100"><Globe size={20} class="text-slate-400" /> {$t('View the website')}</a>
+            {#if stationToken}
+              <a href={`/station/${stationToken}`} class="flex items-center gap-3 px-3 py-3 rounded-lg text-slate-800 hover:bg-slate-100"><Users size={20} class="text-slate-400" /> {$t('Switch volunteer')}</a>
+            {/if}
             <button type="button" on:click={signOut} class="w-full flex items-center gap-3 px-3 py-3 rounded-lg text-slate-800 hover:bg-slate-100"><LogOut size={20} class="text-slate-400" /> {$t('Sign out')}</button>
             <div class="px-3 py-2"><LanguageSwitch /></div>
           </div>

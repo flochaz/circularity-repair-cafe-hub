@@ -57,6 +57,9 @@ export function describeActivity(a: any): { who: string | null; rest: string } {
     case 'user.avatar_self_updated': return { who, rest: 'updated their photo' };
     case 'user.avatar_self_removed': return { who, rest: 'removed their photo' };
     case 'auth.password_reset': return { who, rest: 'reset their password' };
+    case 'auth.station_selected': return { who, rest: 'opened the volunteer station' };
+    case 'cafe.station_updated': return { who, rest: 'updated the volunteer station setting' };
+    case 'cafe.station_link_replaced': return { who, rest: 'made a new volunteer station link' };
     case 'venue.created': return { who, rest: 'added a venue' };
     case 'venue.updated': return { who, rest: 'updated a venue' };
     case 'template.created': return { who, rest: 'created an event template' };

@@ -17,7 +17,7 @@ function pickLocale(cookie: string | undefined, setting: string): 'en' | 'fr' {
 // browser asks for French — otherwise a screen reader would read English text
 // with a French voice. It also keeps the public-page cache stable: those pages
 // are always English, so the language never varies between visitors.
-const TRANSLATED = /^\/(checkin|track|repairer|login|reset|rota|display)(\/|$)/;
+const TRANSLATED = /^\/(checkin|track|repairer|login|reset|rota|display|station)(\/|$)/;
 
 // Resolve the language for every request and put it on <html lang>, which is
 // what tells screen readers and search engines what the page is in. The value

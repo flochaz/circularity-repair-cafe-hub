@@ -156,6 +156,9 @@ export const cafes = sqliteTable('cafes', {
   cartoApiKey: text('carto_api_key'),
   /** The secret part of the waiting-room display link. See routes/display.ts. */
   displayToken: text('display_token'),
+  /** The secret part of the volunteer station link. See routes/station.ts. */
+  stationToken: text('station_token'),
+  stationEnabled: bool('station_enabled').notNull().default(false),
   repaircafeSlug: text('repaircafe_slug'),
   /** The hub version at which we last asked which listing is ours. */
   listingPromptedVersion: text('listing_prompted_version'),

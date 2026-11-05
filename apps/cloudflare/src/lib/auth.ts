@@ -104,10 +104,14 @@ export function requireRole(...roles: Role[]): Hook {
 
 // ── Refresh tokens ───────────────────────────────────────────────────────────
 
-export async function issueTokens(user: TokenUser): Promise<{ accessToken: string; refreshToken: string }> {
+export async function issueTokens(
+  user: TokenUser,
+  options: { refreshDays?: number } = {},
+): Promise<{ accessToken: string; refreshToken: string }> {
   const accessToken = await signAccessToken(user);
   const refreshToken = randomToken(32);
-  const expiresAt = new Date(Date.now() + env.REFRESH_TOKEN_DAYS * 24 * 60 * 60 * 1000);
+  const days = options.refreshDays ?? env.REFRESH_TOKEN_DAYS;
+  const expiresAt = new Date(Date.now() + days * 24 * 60 * 60 * 1000);
   await db.insert(refreshTokens).values({
     userId: user.id,
     tokenHash: await hashToken(refreshToken),

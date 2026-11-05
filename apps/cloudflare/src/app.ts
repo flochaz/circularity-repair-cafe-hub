@@ -21,6 +21,7 @@ import { preRegistrationPublicRoutes, preRegistrationStaffRoutes } from './route
 import { eventGalleryRoutes } from './routes/eventGallery.js';
 import { adminRoutes } from './routes/admin/index.js';
 import { displayRoutes } from './routes/display.js';
+import { stationRoutes } from './routes/station.js';
 import { demoRoutes } from './routes/demo.js';
 import { importRoutes, setupImportRoutes } from './routes/admin/backup.js';
 import { fileRoutes } from './routes/files.js';
@@ -47,6 +48,7 @@ const registered = (async () => {
   await app.register(preRegistrationStaffRoutes);
   await app.register(eventGalleryRoutes);
   await app.register(displayRoutes);
+  await app.register(stationRoutes);
   await app.register(demoRoutes);
   await app.register(adminRoutes);
   await app.register(importRoutes);

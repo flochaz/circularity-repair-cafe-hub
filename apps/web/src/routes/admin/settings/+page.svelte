@@ -4,7 +4,7 @@
   import { auth } from '$lib/stores/auth';
   import { loadCafe, cafe as publicCafe } from '$lib/stores/cafe';
   import { DEFAULT_QWA_EVENTS, FONT_OPTIONS, QWA_EVENTS, activeAnalytics, type AnalyticsProvider } from '@circularity/shared';
-  import { Trash2, Plus, Download, Upload, AlertTriangle } from 'lucide-svelte';
+  import { Trash2, Plus, Download, Upload, AlertTriangle, Check, Copy, ExternalLink, RefreshCw, Users } from 'lucide-svelte';
   import ImageDropzone from '$lib/components/ImageDropzone.svelte';
   import GalleryManager from '$lib/components/GalleryManager.svelte';
   import type { ManagedPhoto } from '$lib/gallery';
@@ -18,6 +18,13 @@
   let busy = false;
   type Tab = 'profile' | 'home' | 'linux' | 'gallery' | 'local' | 'preferences' | 'seo' | 'gdpr' | 'telemetry' | 'backup' | 'about';
   let tab: Tab = 'profile';
+
+  // ── The volunteer station link ───────────────────────────────────────
+  let station: { enabled: boolean; token: string; path: string; qrPath: string } | null = null;
+  let stationError = '';
+  let stationBusy = false;
+  let stationCopied = false;
+  let confirmStationRotate = false;
 
   $: isSuperAdmin = $auth?.user.role === 'super_admin';
 
@@ -292,6 +299,7 @@
   onMount(async () => {
     await load();
     await loadGallery();
+    await loadStation();
   });
 
   async function save() {
@@ -340,6 +348,55 @@
       await load();
     } finally { busy = false; }
   }
+
+  // ── The volunteer station link ───────────────────────────────────────
+  async function loadStation() {
+    try {
+      station = await api('/api/admin/station-link');
+    } catch (err: any) {
+      stationError = err?.message ?? 'Could not load the volunteer station link';
+    }
+  }
+
+  async function setStation(enabled: boolean) {
+    if (!station) return;
+    stationBusy = true;
+    stationError = '';
+    try {
+      station = await api('/api/admin/station-link', { method: 'PATCH', json: { enabled } });
+    } catch (err: any) {
+      stationError = err?.message ?? 'Could not change the volunteer station';
+    } finally {
+      stationBusy = false;
+    }
+  }
+
+  async function rotateStation() {
+    stationBusy = true;
+    stationError = '';
+    try {
+      station = await api('/api/admin/station-link/regenerate', { method: 'POST', json: {} });
+      confirmStationRotate = false;
+    } catch (err: any) {
+      stationError = err?.message ?? 'Could not make a new link';
+    } finally {
+      stationBusy = false;
+    }
+  }
+
+  async function copyStation() {
+    if (!station) return;
+    try {
+      await navigator.clipboard.writeText(`${window.location.origin}${station.path}`);
+      stationCopied = true;
+      setTimeout(() => (stationCopied = false), 2000);
+    } catch {
+      stationError = 'Your browser would not copy it. Select the address and copy it instead.';
+    }
+  }
+
+  $: stationOrigin = (cafe?.publicUrl || (typeof window !== 'undefined' ? window.location.origin : '')).replace(/\/$/, '');
+  $: stationUrl = station ? `${stationOrigin}${station.path}` : '';
 
   async function saveHome() {
     busy = true;
@@ -1175,6 +1232,66 @@
           out, and the waiting-room screen shows the card number instead of the job number. A number is free again
           once the item is collected, so the same cards can be used all session.
         </p>
+      </section>
+
+      <section class="pt-4 border-t border-slate-200 space-y-2">
+        <h2 class="text-lg font-semibold flex items-center gap-2"><Users size={20} /> Volunteer station</h2>
+        <p class="text-sm text-slate-600">
+          A shared link for volunteers. They open it, tap their name and land in the repair queue without a password.
+          Only volunteer accounts appear in the list; admin pages still need a password. Share the link only with
+          volunteers: anyone with it can act as one of the team.
+        </p>
+        {#if stationError}<p class="text-sm text-rose-700">{stationError}</p>{/if}
+        {#if station}
+          <label class="flex items-start gap-3">
+            <input
+              type="checkbox"
+              class="mt-1"
+              checked={station.enabled}
+              disabled={stationBusy}
+              on:change={(e) => setStation(e.currentTarget.checked)}
+            />
+            <span>Turn on the volunteer station</span>
+          </label>
+          {#if station.enabled}
+            <div class="mt-2 grid sm:grid-cols-[1fr_auto] gap-4 items-start">
+              <div class="min-w-0">
+                <input class="input font-mono text-sm" readonly value={stationUrl} on:focus={(e) => e.currentTarget.select()} />
+                <div class="mt-2 flex flex-wrap gap-2">
+                  <button type="button" class="btn-secondary btn-sm" on:click={copyStation}>
+                    {#if stationCopied}<Check size={14} /> Copied{:else}<Copy size={14} /> Copy the link{/if}
+                  </button>
+                  <a class="btn-secondary btn-sm" href={station.path} target="_blank" rel="noopener"><ExternalLink size={14} /> Open it here</a>
+                </div>
+                <div class="mt-4 pt-3 border-t border-slate-100 text-sm">
+                  {#if confirmStationRotate}
+                    <p class="text-slate-700">
+                      The old link will stop working. Volunteers already signed in keep their session until they
+                      switch or close the browser.
+                    </p>
+                    <div class="mt-2 flex gap-2">
+                      <button type="button" class="btn-ghost btn-sm" on:click={() => (confirmStationRotate = false)}>Keep this one</button>
+                      <button type="button" class="btn-secondary btn-sm" disabled={stationBusy} on:click={rotateStation}><RefreshCw size={14} /> Make a new link</button>
+                    </div>
+                  {:else}
+                    <p class="text-slate-500">
+                      If the link has gone somewhere it should not,
+                      <button type="button" class="underline underline-offset-2 hover:text-slate-800" on:click={() => (confirmStationRotate = true)}>make a new one</button>.
+                    </p>
+                  {/if}
+                </div>
+              </div>
+              <div class="text-center">
+                <img src={station.qrPath} alt="QR code for the volunteer station" class="w-40 h-40 rounded-xl ring-1 ring-slate-200 bg-white p-1" />
+                <p class="mt-1 text-xs text-slate-500">Print or share this QR code</p>
+              </div>
+            </div>
+          {:else}
+            <p class="text-sm text-slate-500">The link is off. Turn it on to show the QR code and share it.</p>
+          {/if}
+        {:else if !stationError}
+          <p class="text-sm text-slate-500">Loading…</p>
+        {/if}
       </section>
 
       <div class="flex justify-end"><button class="btn-primary" on:click={savePrefs} disabled={busy}>Save preferences</button></div>
