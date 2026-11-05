@@ -105,6 +105,7 @@ export async function adminDashboardRoutes(app: App): Promise<void> {
           .select({
             id: repairJobs.id,
             jobNumber: repairJobs.jobNumber,
+            cardNumber: repairJobs.cardNumber,
             itemDescription: repairJobs.itemDescription,
             customerName: repairJobs.customerName,
             status: repairJobs.status,
@@ -150,6 +151,7 @@ export async function adminDashboardRoutes(app: App): Promise<void> {
         itemDescription: repairJobs.itemDescription,
         customerName: repairJobs.customerName,
         outcomeNotes: repairJobs.outcomeNotes,
+        cardNumber: repairJobs.cardNumber,
         eventDate: events.date,
       })
       .from(repairJobs)

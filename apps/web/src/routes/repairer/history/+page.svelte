@@ -5,11 +5,13 @@
   import { api } from '$lib/api';
   import { statusLabel } from '$lib/staff/queue';
   import { currentLocale, t, tNow } from '$lib/i18n';
+  import CardNumber from '$lib/components/CardNumber.svelte';
   import { ChevronRight } from 'lucide-svelte';
 
   interface Row {
     id: string;
     jobNumber: string;
+    cardNumber: number | null;
     itemDescription: string;
     status: string;
     completedAt: string | null;
@@ -65,7 +67,7 @@
         <a href={`/repairer/job/${r.id}`} class="flex items-center gap-3 px-4 py-3 hover:bg-slate-50">
           <div class="min-w-0 flex-1">
             <p class="font-medium text-slate-900 truncate">{r.itemDescription}</p>
-            <p class="text-xs text-slate-500 truncate"><span class="font-mono">{r.jobNumber}</span> · {day(r.eventDate)}{#if r.category} · {$t(r.category)}{/if}</p>
+            <p class="text-xs text-slate-500 truncate"><span class="font-mono">{r.jobNumber}</span> <CardNumber number={r.cardNumber} /> · {day(r.eventDate)}{#if r.category} · {$t(r.category)}{/if}</p>
           </div>
           <span class="badge badge-{r.status} shrink-0">{statusLabel(r.status)}</span>
           <ChevronRight size={16} class="text-slate-400 shrink-0" />

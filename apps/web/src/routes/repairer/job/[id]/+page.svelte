@@ -22,6 +22,7 @@
   import { cafe } from '$lib/stores/cafe';
   import CameraCapture from '$lib/components/CameraCapture.svelte';
   import PatBadge from '$lib/components/PatBadge.svelte';
+  import CardNumber from '$lib/components/CardNumber.svelte';
   import { clockTime, firstName, minutesBetween, statusLabel, formatDuration } from '$lib/staff/queue';
   import { PAT_RESULTS, type PatResult } from '@circularity/shared';
   import { ArrowLeft, Camera as CameraIcon, CheckCircle2, ChevronDown, NotebookPen, Package, User, XCircle, Zap } from 'lucide-svelte';
@@ -288,7 +289,10 @@
       <header class="card p-5">
         <div class="flex items-start justify-between gap-3">
           <div class="min-w-0">
-            <p class="text-xs text-slate-500 font-mono">{detail.job.jobNumber}</p>
+            <div class="flex items-center gap-2">
+              <p class="text-xs text-slate-500 font-mono">{detail.job.jobNumber}</p>
+              <CardNumber number={detail.job.cardNumber} />
+            </div>
             <h1 class="text-2xl font-bold leading-tight mt-0.5">{detail.job.itemDescription}</h1>
             <p class="text-slate-600 text-sm mt-1">
               {#if detail.category?.name}<span class="font-medium" style="color: {detail.category.colour}">{detail.category.name}</span>{/if}

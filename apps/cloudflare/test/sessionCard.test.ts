@@ -11,6 +11,7 @@ describe('session card numbers', () => {
   let repairer = '';
   let firstId = '';
   let reuseId = '';
+  let firstCustomerToken = '';
 
   it('keeps a number unique among open jobs, and frees it when the job closes', async () => {
     admin = (await setUpHub()).token;
@@ -47,6 +48,7 @@ describe('session card numbers', () => {
     const stored = await call(`/api/admin/repairs/${first.body.id}`, { token: admin });
     expect(stored.body.job.cardNumber).toBe(7);
     firstId = first.body.id;
+    firstCustomerToken = first.body.customerToken;
 
     // The check-in page reads the numbers in use from the session's job list.
     const active = await call('/api/repairer/active-event', { token: repairer });
@@ -98,6 +100,35 @@ describe('session card numbers', () => {
     // Saving the fan with its own number is fine.
     const same = await call(`/api/admin/repairs/${reuseId}`, { method: 'PATCH', token: admin, json: { cardNumber: 7 } });
     expect(same.status).toBe(200);
+  });
+
+  it('carries the card number to every screen that lists the job', async () => {
+    const active = await call('/api/repairer/active-event', { token: repairer });
+    const eventId = active.body.event.id;
+
+    const detail = await call(`/api/repairer/jobs/${reuseId}`, { token: repairer });
+    expect(detail.body.job.cardNumber).toBe(7);
+
+    const history = await call('/api/repairer/history', { token: repairer });
+    expect(history.body.data.find((r: any) => r.id === firstId).cardNumber).toBe(7);
+
+    const list = await call('/api/admin/repairs', { token: admin });
+    expect(list.body.data.find((r: any) => r.id === reuseId).cardNumber).toBe(7);
+
+    const adminDetail = await call(`/api/admin/repairs/${reuseId}`, { token: admin });
+    expect(adminDetail.body.job.cardNumber).toBe(7);
+
+    const event = await call(`/api/admin/events/${eventId}`, { token: admin });
+    expect(event.body.jobs.find((j: any) => j.id === reuseId).cardNumber).toBe(7);
+
+    const dashboard = await call('/api/admin/dashboard', { token: admin });
+    expect(dashboard.body.activeJobs.find((j: any) => j.id === reuseId).cardNumber).toBe(7);
+
+    const stats = await call(`/api/admin/stats/events/${eventId}`, { token: admin });
+    expect(stats.body.jobs.find((j: any) => j.id === reuseId).cardNumber).toBe(7);
+
+    const track = await call(`/api/track/${firstCustomerToken}`);
+    expect(track.body.jobs.find((j: any) => j.id === firstId).cardNumber).toBe(7);
   });
 
   it('shows the card number on the waiting-room display', async () => {

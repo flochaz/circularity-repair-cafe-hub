@@ -31,10 +31,12 @@
     UserPlus,
     X,
   } from 'lucide-svelte';
+  import CardNumber from '$lib/components/CardNumber.svelte';
 
   interface DashJob {
     id: string;
     jobNumber: string;
+    cardNumber: number | null;
     itemDescription: string;
     customerName: string | null;
     status: string;
@@ -336,7 +338,7 @@
                 <li>{waiting.length} waiting and nobody repairing. Is everyone on a break?</li>
               {/if}
               {#each overdue as j}
-                <li><a class="underline underline-offset-2" href={`/admin/repairs/${j.id}`}>{j.itemDescription}</a> ({j.jobNumber}) has waited {formatDuration(minutesBetween(j.createdAt, now))}.</li>
+                <li><a class="underline underline-offset-2" href={`/admin/repairs/${j.id}`}>{j.itemDescription}</a> ({j.jobNumber} <CardNumber number={j.cardNumber} />) has waited {formatDuration(minutesBetween(j.createdAt, now))}.</li>
               {/each}
             </ul>
           </section>
@@ -354,7 +356,7 @@
                       <span class="h-6 w-6 rounded-full bg-slate-100 text-xs font-semibold flex items-center justify-center shrink-0">{i + 1}</span>
                       <span class="min-w-0 flex-1">
                         <span class="block text-sm font-medium truncate">{j.itemDescription}</span>
-                        <span class="block text-xs text-slate-500 truncate">{j.jobNumber}{#if j.category} · {j.category}{/if}</span>
+                        <span class="block text-xs text-slate-500 truncate">{j.jobNumber} <CardNumber number={j.cardNumber} />{#if j.category} · {j.category}{/if}</span>
                       </span>
                       <span class="text-xs shrink-0 {WAIT_TONE_CLASS[waitTone(m)]}">{formatMinutes(m)}</span>
                     </a>
@@ -377,7 +379,7 @@
                       <span class="h-8 w-8 rounded-full bg-blue-50 text-blue-700 text-xs font-semibold flex items-center justify-center shrink-0" title={j.repairerName ?? ''}>{(j.repairerName ?? '?').split(/\s+/).map((p) => p[0]).slice(0, 2).join('')}</span>
                       <span class="min-w-0 flex-1">
                         <span class="block text-sm font-medium truncate">{j.itemDescription}</span>
-                        <span class="block text-xs text-slate-500 truncate">{firstName(j.repairerName) || 'Someone'} · {j.jobNumber}</span>
+                        <span class="block text-xs text-slate-500 truncate">{firstName(j.repairerName) || 'Someone'} · {j.jobNumber} <CardNumber number={j.cardNumber} /></span>
                       </span>
                       <span class="text-xs text-slate-500 shrink-0">{formatMinutes(minutesBetween(j.acceptedAt ?? j.createdAt, now))}</span>
                     </a>
@@ -483,7 +485,7 @@
               <li>
                 <a href={`/admin/repairs/${j.id}`} class="block px-4 py-2.5 hover:bg-slate-50">
                   <span class="block text-sm font-medium truncate">{j.itemDescription}</span>
-                  <span class="block text-xs text-slate-500 truncate">{j.jobNumber} · {shortDate(j.eventDate)}{#if j.customerName} · {firstName(j.customerName)}{/if}</span>
+                  <span class="block text-xs text-slate-500 truncate">{j.jobNumber} <CardNumber number={j.cardNumber} /> · {shortDate(j.eventDate)}{#if j.customerName} · {firstName(j.customerName)}{/if}</span>
                 </a>
               </li>
             {/each}

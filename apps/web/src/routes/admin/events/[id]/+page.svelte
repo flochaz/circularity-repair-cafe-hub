@@ -2,6 +2,7 @@
   import { page } from '$app/stores';
   import { onMount } from 'svelte';
   import { api } from '$lib/api';
+  import CardNumber from '$lib/components/CardNumber.svelte';
   import { goto } from '$app/navigation';
   import { Printer, Download, RotateCw, Copy, Images, Trash2, Users } from 'lucide-svelte';
   // Aliased: this page already has its own `cafe` holding the admin settings.
@@ -273,7 +274,7 @@
         <tbody class="divide-y divide-slate-100">
           {#each detail.jobs as j}
             <tr>
-              <td class="px-3 py-2 font-mono">{j.jobNumber}</td>
+              <td class="px-3 py-2 font-mono">{j.jobNumber} <CardNumber number={j.cardNumber} /></td>
               <td class="px-3 py-2">{j.itemDescription}</td>
               <td class="px-3 py-2">{j.customerName ?? '-'}</td>
               <td class="px-3 py-2"><span class="badge badge-{j.status}">{j.status}</span></td>

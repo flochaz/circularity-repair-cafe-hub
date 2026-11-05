@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { api, download } from '$lib/api';
+  import CardNumber from '$lib/components/CardNumber.svelte';
 
   let categories: any[] = [];
   let users: any[] = [];
@@ -159,7 +160,7 @@
         {#each data.data as r}
           <tr>
             <td class="px-3 py-2 whitespace-nowrap">{r.eventDate}</td>
-            <td class="px-3 py-2 font-mono"><a href={`/admin/repairs/${r.id}`} class="text-brand-700 hover:underline">{r.jobNumber}</a></td>
+            <td class="px-3 py-2 font-mono"><a href={`/admin/repairs/${r.id}`} class="text-brand-700 hover:underline">{r.jobNumber}</a> <CardNumber number={r.cardNumber} /></td>
             <td class="px-3 py-2">{r.itemDescription}</td>
             <td class="px-3 py-2">{r.customerName ?? '-'}</td>
             <td class="px-3 py-2 min-w-[180px]">

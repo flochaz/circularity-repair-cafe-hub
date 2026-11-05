@@ -6,6 +6,7 @@
   import { auth } from '$lib/stores/auth';
   import { cafe } from '$lib/stores/cafe';
   import PatBadge from '$lib/components/PatBadge.svelte';
+  import CardNumber from '$lib/components/CardNumber.svelte';
   import { ArrowLeft } from 'lucide-svelte';
 
   $: id = $page.params.id;
@@ -155,7 +156,7 @@
 
 {#if detail}
   <a href="/admin/repairs" class="inline-flex items-center gap-1 text-sm text-slate-500 hover:text-brand-700"><ArrowLeft size={14} /> Back to repairs</a>
-  <h1 class="text-2xl font-bold mt-1">{detail.job.jobNumber}</h1>
+  <h1 class="text-2xl font-bold mt-1 flex items-center gap-2">{detail.job.jobNumber} <CardNumber number={detail.job.cardNumber} /></h1>
   <p class="text-slate-600">{detail.event?.name} · {detail.event?.date}</p>
 
   <div class="mt-3 flex flex-wrap items-center gap-3 text-sm">

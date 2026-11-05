@@ -240,6 +240,7 @@ export async function adminStatsRoutes(app: App): Promise<void> {
       SELECT
         rj.id,
         rj.job_number AS job_number,
+        rj.card_number AS card_number,
         rj.item_description AS item_description,
         rj.item_brand AS item_brand,
         rj.status,
@@ -307,6 +308,7 @@ export async function adminStatsRoutes(app: App): Promise<void> {
       jobs: jobsRows.rows.map((r: any) => ({
         id: r.id,
         jobNumber: r.job_number,
+        cardNumber: r.card_number == null ? null : Number(r.card_number),
         itemDescription: r.item_description,
         itemBrand: r.item_brand,
         status: r.status,

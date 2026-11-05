@@ -14,6 +14,7 @@
   import { auth } from '$lib/stores/auth';
   import { cafe } from '$lib/stores/cafe';
   import PatBadge from '$lib/components/PatBadge.svelte';
+  import CardNumber from '$lib/components/CardNumber.svelte';
   import { WAIT_TONE_CLASS, firstName, minutesBetween, sessionTimes, statusLabel, waitTone, formatAgo, formatDuration } from '$lib/staff/queue';
   import { CalendarClock, Camera, CheckCircle2, ChevronRight, Clock, RefreshCw, UserPlus, Wrench, X } from 'lucide-svelte';
   import { currentLocale, t, tNow } from '$lib/i18n';
@@ -21,6 +22,7 @@
   interface Job {
     id: string;
     jobNumber: string;
+    cardNumber: number | null;
     customerName: string | null;
     itemDescription: string;
     faultDescription: string;
@@ -246,7 +248,12 @@
             <span class="h-11 w-11 rounded-xl bg-blue-50 text-blue-700 flex items-center justify-center shrink-0"><Wrench size={20} /></span>
             <div class="min-w-0 flex-1">
               <p class="font-semibold text-slate-900 truncate">{j.itemDescription}</p>
-              <p class="text-sm text-slate-600 truncate">{j.jobNumber}{#if j.customerName} · {firstName(j.customerName)}{/if} · {$t('started {ago}', { ago: formatAgo(minutesBetween(j.acceptedAt ?? j.createdAt, now)) })}</p>
+              <p class="text-sm text-slate-600 flex flex-wrap items-center gap-x-1.5">
+                <span class="font-mono">{j.jobNumber}</span>
+                <CardNumber number={j.cardNumber} />
+                {#if j.customerName}<span>· {firstName(j.customerName)}</span>{/if}
+                <span>· {$t('started {ago}', { ago: formatAgo(minutesBetween(j.acceptedAt ?? j.createdAt, now)) })}</span>
+              </p>
               {#if j.needsPat || j.patResult}<p class="mt-1"><PatBadge needed={j.needsPat} result={j.patResult} /></p>{/if}
             </div>
             <span class="text-sm font-semibold text-brand-700 flex items-center gap-1 shrink-0">{$t('Carry on')} <ChevronRight size={16} /></span>
@@ -306,6 +313,7 @@
               </div>
               <p class="mt-0.5 text-xs text-slate-500 flex flex-wrap items-center gap-x-2 gap-y-1">
                 <span class="font-mono">{j.jobNumber}</span>
+                <CardNumber number={j.cardNumber} />
                 {#if j.category}<span class="rounded px-1.5 py-0.5 font-medium" style="background-color: {j.categoryColour}22; color: {j.categoryColour}">{$t(j.category)}</span>{/if}
                 {#if j.itemBrand}<span>{j.itemBrand}</span>{/if}
                 {#if j.customerName}<span>· {firstName(j.customerName)}</span>{/if}

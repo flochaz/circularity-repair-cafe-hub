@@ -7,6 +7,7 @@
   import { Wrench, RefreshCw, Clock, CheckCircle2, XCircle, PackageX, Hourglass, Heart, CalendarClock } from 'lucide-svelte';
   import Icon from '@iconify/svelte';
   import { categoryIcon } from '$lib/categoryIcon';
+  import CardNumber from '$lib/components/CardNumber.svelte';
   import { t, tNow } from '$lib/i18n';
 
   type Status = 'waiting' | 'in_progress' | 'completed' | 'cannot_repair' | 'awaiting_return' | 'returned';
@@ -14,6 +15,7 @@
   interface TrackJob {
     id: string;
     jobNumber: string;
+    cardNumber: number | null;
     status: Status;
     itemDescription: string;
     itemBrand: string | null;
@@ -289,6 +291,7 @@
               <div class="min-w-0 flex-1">
                 <div class="flex items-center justify-between gap-2">
                   <span class="text-xs font-mono text-slate-500">#{job.jobNumber}</span>
+                  <CardNumber number={job.cardNumber} />
                   <span class="badge badge-{job.status}">
                     {#if job.status === 'waiting'}<Hourglass size={12} />{/if}
                     {#if job.status === 'in_progress'}<Clock size={12} />{/if}

@@ -849,6 +849,7 @@ export async function repairerRoutes(app: App): Promise<void> {
       .select({
         id: repairJobs.id,
         jobNumber: repairJobs.jobNumber,
+        cardNumber: repairJobs.cardNumber,
         itemDescription: repairJobs.itemDescription,
         status: repairJobs.status,
         completedAt: repairJobs.completedAt,

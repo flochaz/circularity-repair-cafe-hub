@@ -244,6 +244,7 @@ export async function checkInRoutes(app: App): Promise<void> {
       .select({
         id: repairJobs.id,
         jobNumber: repairJobs.jobNumber,
+        cardNumber: repairJobs.cardNumber,
         status: repairJobs.status,
         customerName: repairJobs.customerName,
       })
@@ -341,6 +342,7 @@ export async function checkInRoutes(app: App): Promise<void> {
         job: {
           id: repairJobs.id,
           jobNumber: repairJobs.jobNumber,
+          cardNumber: repairJobs.cardNumber,
           status: repairJobs.status,
           customerName: repairJobs.customerName,
           itemDescription: repairJobs.itemDescription,
@@ -483,6 +485,7 @@ export async function checkInRoutes(app: App): Promise<void> {
         return {
           id: r.job.id,
           jobNumber: r.job.jobNumber,
+          cardNumber: r.job.cardNumber,
           status: r.job.status,
           itemDescription: r.job.itemDescription,
           itemBrand: r.job.itemBrand,

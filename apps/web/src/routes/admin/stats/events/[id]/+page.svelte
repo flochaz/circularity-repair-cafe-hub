@@ -2,6 +2,7 @@
   import { page } from '$app/stores';
   import { onMount } from 'svelte';
   import { api } from '$lib/api';
+  import CardNumber from '$lib/components/CardNumber.svelte';
   import Icon from '@iconify/svelte';
   import { categoryIcon } from '$lib/categoryIcon';
   import { ArrowLeft, Wrench, CheckCircle2, XCircle, PackageX, Hourglass, Clock, Users, Scale, Laptop } from 'lucide-svelte';
@@ -43,6 +44,7 @@
     jobs: Array<{
       id: string;
       jobNumber: string;
+      cardNumber: number | null;
       itemDescription: string;
       itemBrand: string | null;
       status: Status;
@@ -248,7 +250,7 @@
           <tbody class="divide-y divide-slate-100">
             {#each detail.jobs as j}
               <tr>
-                <td class="px-3 py-2 font-mono text-xs text-slate-500">{j.jobNumber}</td>
+                <td class="px-3 py-2 font-mono text-xs text-slate-500">{j.jobNumber} <CardNumber number={j.cardNumber} /></td>
                 <td class="px-3 py-2 text-slate-900">
                   {j.itemDescription}{#if j.itemBrand} <span class="text-slate-500">· {j.itemBrand}</span>{/if}
                 </td>
