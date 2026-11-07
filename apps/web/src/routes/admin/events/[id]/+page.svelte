@@ -87,36 +87,28 @@
   }
 
   /**
-   * Wipe the repairs and other records of one session, for testing the setup
-   * again from scratch. The session itself, its date and its QR code stay.
+   * Delete the repairs (the items) of one session, for testing the setup again
+   * from scratch. The session, its photos, pre-registrations, Linux records,
+   * rota and attendance all stay.
    */
   async function clearData() {
     const jobs = detail?.jobs?.length ?? 0;
     const ok = confirm(
-      `Clear all data for "${detail.event.name}" on ${detail.event.date}?\n\n` +
-        `This permanently deletes ${jobs} repair${jobs === 1 ? '' : 's'}, every pre-registration, ` +
-        'Linux record, photo and sign-up answer for this session.\n\n' +
-        'The session itself and the volunteer attendance list stay, so you can run the same QR code again. This cannot be undone.',
+      `Delete all repairs for "${detail.event.name}" on ${detail.event.date}?\n\n` +
+        `This permanently deletes ${jobs} repair${jobs === 1 ? '' : 's'} and their photos.\n\n` +
+        'The session, pre-registrations, Linux records, session photos, rota and attendance list stay. Pre-registered items that were checked in go back to the open list. This cannot be undone.',
     );
     if (!ok) return;
     error = '';
     try {
-      const res = await api<{
-        repairs: number;
-        preRegistrations: number;
-        linuxInstalls: number;
-        photos: number;
-        signups: number;
-      }>(`/api/admin/events/${id}/clear`, { method: 'POST', json: {} });
+      const res = await api<{ repairs: number; photos: number }>(`/api/admin/events/${id}/clear`, {
+        method: 'POST',
+        json: {},
+      });
       await load();
-      alert(
-        `Cleared ${res.repairs} repair${res.repairs === 1 ? '' : 's'}, ` +
-          `${res.preRegistrations} pre-registration${res.preRegistrations === 1 ? '' : 's'}, ` +
-          `${res.linuxInstalls} Linux record${res.linuxInstalls === 1 ? '' : 's'} and ` +
-          `${res.photos} photo${res.photos === 1 ? '' : 's'}.`,
-      );
+      alert(`Deleted ${res.repairs} repair${res.repairs === 1 ? '' : 's'} and ${res.photos} photo${res.photos === 1 ? '' : 's'}.`);
     } catch (err: any) {
-      error = err?.message || 'Could not clear this session';
+      error = err?.message || 'Could not clear the repairs';
     }
   }
 
@@ -183,7 +175,7 @@
       </a>
       <a class="btn-secondary" href={`/admin/events/${id}/rota`}><Users size={16} /> Sign-up</a>
       <button class="btn-secondary" on:click={clone}><Copy size={16} /> Clone</button>
-      <button class="btn-danger-outline" on:click={clearData}><Eraser size={16} /> Clear data</button>
+      <button class="btn-danger-outline" on:click={clearData}><Eraser size={16} /> Clear repairs</button>
       <!-- Quiet, not a solid red button: deleting a session is rare and should
            not sit here looking like the obvious next step. -->
       <button class="btn-danger-outline" on:click={remove}><Trash2 size={16} /> Delete</button>

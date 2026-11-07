@@ -1,5 +1,6 @@
-// Clearing the records of one session, for testing a setup from scratch.
-// The event itself and its QR code stay. See POST /api/admin/events/:id/clear.
+// Clearing the repairs of one session, for testing a setup from scratch. The
+// event, its pre-registrations, rota and attendance stay. See
+// POST /api/admin/events/:id/clear.
 import { beforeAll, describe, expect, it } from 'vitest';
 import { call, freshHub, setUpHub } from './helpers.js';
 
@@ -78,7 +79,7 @@ describe('clearing an event', () => {
     expect((await call(`/api/admin/events/${eventId}`, { token: admin })).status).toBe(404);
   });
 
-  it('removes pre-registrations too, without removing the session', async () => {
+  it('keeps pre-registrations and the session itself', async () => {
     await call('/api/admin/settings/preferences', {
       method: 'PATCH',
       token: admin,
@@ -107,10 +108,10 @@ describe('clearing an event', () => {
 
     const cleared = await call(`/api/admin/events/${id}/clear`, { method: 'POST', token: admin, json: {} });
     expect(cleared.status).toBe(200);
-    expect(cleared.body.preRegistrations).toBe(1);
+    expect(cleared.body.repairs).toBe(0);
 
     const list = await call('/api/repairer/pre-registrations', { token: repairer.token });
-    expect((list.body.items as any[]).filter((i) => i.event.id === id)).toEqual([]);
+    expect((list.body.items as any[]).filter((i) => i.event.id === id)).toHaveLength(1);
     expect((await call(`/api/admin/events/${id}`, { token: admin })).status).toBe(200);
   });
 });

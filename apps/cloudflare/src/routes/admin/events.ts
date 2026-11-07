@@ -1,6 +1,6 @@
 import type { App } from '../../lib/router.js';
 import { db, inList } from '../../db/index.js';
-import { cafes, eventImages, eventRoles, eventSignups, eventSignupChoices, eventTemplates, events, linuxInstalls, preRegistrations, repairImages, repairJobs, repairerEvents, skillCategories, users, venues } from '../../db/schema.js';
+import { cafes, eventTemplates, events, linuxInstalls, preRegistrations, repairImages, repairJobs, repairerEvents, skillCategories, users, venues } from '../../db/schema.js';
 import { and, asc, desc, eq, sql } from 'drizzle-orm';
 import { eventTemplateSchema, oneOffEventSchema } from '@circularity/shared';
 import { addMonthsIso, generateInstances, todayIso } from '../../services/recurrence.js';
@@ -225,10 +225,9 @@ export async function adminEventsRoutes(app: App): Promise<void> {
     return { ok: true };
   });
 
-  // Wipe everything that happened at one session, for testing a setup from
-  // scratch. The event itself, its date, its QR code, its check-in token and
-  // the volunteer attendance list stay, so the same session can be run again
-  // with the same team.
+  // Wipe the repairs (the items) of one session, for testing the setup from
+  // scratch. The event, its photos, pre-registrations, Linux records, rota,
+  // volunteer attendance and QR code all stay.
   app.post('/api/admin/events/:id/clear', async (request, reply) => {
     const { id } = request.params as { id: string };
     const me = request.auth!;
@@ -242,27 +241,22 @@ export async function adminEventsRoutes(app: App): Promise<void> {
     const repairPics = jobIds.length
       ? await db.select({ filePath: repairImages.filePath }).from(repairImages).where(inList(repairImages.repairJobId, jobIds))
       : [];
-    const eventPics = await db.select({ filePath: eventImages.filePath }).from(eventImages).where(eq(eventImages.eventId, id));
-    const [pre] = await db.select({ n: sql<number>`COUNT(*)` }).from(preRegistrations).where(eq(preRegistrations.eventId, id));
-    const [linux] = await db.select({ n: sql<number>`COUNT(*)` }).from(linuxInstalls).where(eq(linuxInstalls.eventId, id));
-    const [signups] = await db.select({ n: sql<number>`COUNT(*)` }).from(eventSignups).where(eq(eventSignups.eventId, id));
-    const [roles] = await db.select({ n: sql<number>`COUNT(*)` }).from(eventRoles).where(eq(eventRoles.eventId, id));
 
-    // One transaction: either all of the session's operational data goes, or
-    // none of it does. The event row, its QR code and the attendance list stay.
+    // One transaction: either all of the session's repairs go, or none do.
+    // A pre-registration that became a repair goes back to "open", so the
+    // visitor can check the item in again instead of being left pointing at a
+    // repair that no longer exists.
     await db.batch([
-      db.delete(eventSignupChoices).where(sql`signup_id IN (SELECT id FROM event_signups WHERE event_id = ${id}) OR role_id IN (SELECT id FROM event_roles WHERE event_id = ${id})`),
-      db.delete(eventSignups).where(eq(eventSignups.eventId, id)),
-      db.delete(eventRoles).where(eq(eventRoles.eventId, id)),
       db.delete(repairImages).where(inList(repairImages.repairJobId, jobIds)),
-      db.delete(preRegistrations).where(eq(preRegistrations.eventId, id)),
+      db
+        .update(preRegistrations)
+        .set({ status: 'open', repairJobId: null, checkedInAt: null, updatedAt: new Date() })
+        .where(and(eq(preRegistrations.eventId, id), eq(preRegistrations.status, 'checked_in'))),
       db.delete(repairJobs).where(eq(repairJobs.eventId, id)),
-      db.delete(linuxInstalls).where(eq(linuxInstalls.eventId, id)),
-      db.delete(eventImages).where(eq(eventImages.eventId, id)),
     ]);
     // The rows are gone; tidy the files too. A failed delete here leaves an
     // orphan picture, never a broken page.
-    await Promise.allSettled([...repairPics, ...eventPics].map((p) => deleteImage(p.filePath)));
+    await Promise.allSettled(repairPics.map((p) => deleteImage(p.filePath)));
     await audit({
       request,
       actorId: me.sub,
@@ -274,21 +268,13 @@ export async function adminEventsRoutes(app: App): Promise<void> {
         name: existing.name,
         date: existing.date,
         repairs: jobIds.length,
-        preRegistrations: Number(pre.n),
-        linuxInstalls: Number(linux.n),
-        photos: repairPics.length + eventPics.length,
-        signups: Number(signups.n),
-        roles: Number(roles.n),
+        photos: repairPics.length,
       },
     });
     return {
       ok: true,
       repairs: jobIds.length,
-      preRegistrations: Number(pre.n),
-      linuxInstalls: Number(linux.n),
-      photos: repairPics.length + eventPics.length,
-      signups: Number(signups.n),
-      roles: Number(roles.n),
+      photos: repairPics.length,
     };
   });
 

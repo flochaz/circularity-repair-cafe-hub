@@ -53,7 +53,7 @@ export function describeActivity(a: any): { who: string | null; rest: string } {
     case 'event.activated': return { who, rest: `started the event ${ev}` };
     case 'event.completed': return { who, rest: `ended the event ${ev}` };
     case 'event.cancelled': return { who, rest: `cancelled the event ${ev}` };
-    case 'event.data_cleared': return { who, rest: `cleared the data for ${ev}` };
+    case 'event.data_cleared': return { who, rest: `cleared the repairs for ${ev}` };
     case 'user.created': return { who, rest: `added ${person} to the team` };
     case 'user.updated': return { who, rest: `updated the profile of ${person}` };
     case 'user.reset_link_generated': return { who, rest: `created a password reset link for ${person}` };
