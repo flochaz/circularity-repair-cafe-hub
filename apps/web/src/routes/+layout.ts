@@ -11,7 +11,7 @@ export const trailingSlash = 'never';
 // Universal load: runs on the server for SSR pages and on the client for
 // client-only (ssr=false) routes + client-side navigations. Provides the cafe
 // profile and setup status the whole app needs.
-export const load: LayoutLoad = async ({ fetch, url }) => {
+export const load: LayoutLoad = async ({ fetch, url, data }) => {
   let setupCompleted = false;
   try {
     const res = await fetch('/api/setup/status');
@@ -42,5 +42,5 @@ export const load: LayoutLoad = async ({ fetch, url }) => {
     }
   }
 
-  return { setupCompleted, cafe };
+  return { setupCompleted, cafe, locale: data.locale };
 };

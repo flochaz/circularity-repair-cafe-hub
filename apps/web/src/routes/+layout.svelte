@@ -16,7 +16,8 @@
   import InstallPrompt from '$lib/components/InstallPrompt.svelte';
   import { serializeJsonLd, shortAppName, type PageSeo } from '@circularity/shared';
   import { track, trackPageview } from '$lib/analytics';
-  import { setLocale, type Locale } from '$lib/i18n';
+  import { isLocale, locale, setLocale } from '$lib/i18n';
+  import { TRANSLATED_ROUTE } from '$lib/i18n/routes';
   import type { LayoutData } from './$types';
   import DemoBanner from '$lib/components/DemoBanner.svelte';
 
@@ -33,7 +34,34 @@
   // (see onMount) so it can never leak between SSR requests.
   $: cafe.set(data.cafe);
   $: setupCompleted.set(data.setupCompleted);
-  $: setLocale((data.locale ?? 'fr') as Locale);
+
+  /**
+   * The language the visitor picked, read straight from the cookie on the
+   * client. A full reload gets this from the server; this is for client-side
+   * navigation, where the server does not redraw the page.
+   */
+  function chosenCookieLocale(): string | undefined {
+    if (!browser) return undefined;
+    return /(?:^|;\s*)lang=([^;]+)/.exec(document.cookie)?.[1];
+  }
+
+  // Follow the same rule as hooks.server.ts: translated routes use the
+  // visitor's choice, the public pages and the admin area stay English. The
+  // server sets this on a full load; this keeps it right when moving between
+  // routes without reloading.
+  $: {
+    const pathname = $page.url.pathname;
+    if (!TRANSLATED_ROUTE.test(pathname)) {
+      setLocale('en');
+    } else {
+      const chosen = chosenCookieLocale();
+      if (isLocale(chosen)) setLocale(chosen);
+      else if (isLocale(data.locale)) setLocale(data.locale);
+    }
+  }
+
+  // Keep <html lang> in step after a client-side move.
+  $: if (browser) document.documentElement.lang = $locale;
 
   // Re-theme the UI whenever the cafe's branding changes. Unset colours/fonts
   // fall back to the Circularity defaults declared in app.css. Guarded to the

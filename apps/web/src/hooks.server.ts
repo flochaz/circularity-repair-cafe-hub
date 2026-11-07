@@ -1,5 +1,6 @@
 import type { Handle, HandleFetch } from '@sveltejs/kit';
 import { env } from '$env/dynamic/private';
+import { TRANSLATED_ROUTE } from '$lib/i18n/routes';
 
 /**
  * Which language to show. An explicit choice — the `lang` cookie written by the
@@ -17,14 +18,14 @@ function pickLocale(cookie: string | undefined, setting: string): 'en' | 'fr' {
 // browser asks for French — otherwise a screen reader would read English text
 // with a French voice. It also keeps the public-page cache stable: those pages
 // are always English, so the language never varies between visitors.
-const TRANSLATED = /^\/(checkin|track|repairer|login|reset|rota|display|station)(\/|$)/;
+// See $lib/i18n/routes.ts; the root layout uses the same rule on the client.
 
 // Resolve the language for every request and put it on <html lang>, which is
 // what tells screen readers and search engines what the page is in. The value
 // is also handed to the app (see routes/+layout.server.ts).
 export const handle: Handle = async ({ event, resolve }) => {
   const requested = pickLocale(event.cookies.get('lang'), (env.LANGUAGE ?? '').toLowerCase());
-  const locale = TRANSLATED.test(event.url.pathname) ? requested : 'en';
+  const locale = TRANSLATED_ROUTE.test(event.url.pathname) ? requested : 'en';
   event.locals.locale = locale;
   return resolve(event, {
     transformPageChunk: ({ html }) => html.replace('<html lang="en"', `<html lang="${locale}"`),

@@ -117,7 +117,9 @@
           <a href={`/station/${stationToken}`} class="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-700 hover:bg-slate-100"><Users size={18} class="text-slate-400" /> {$t('Switch volunteer')}</a>
         {/if}
         <button type="button" on:click={signOut} class="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-slate-700 hover:bg-slate-100"><LogOut size={18} class="text-slate-400" /> {$t('Sign out')}</button>
-        <div class="px-3 py-2"><LanguageSwitch /></div>
+        {#if !pathname.startsWith('/admin')}
+          <div class="px-3 py-2"><LanguageSwitch /></div>
+        {/if}
         {#if admin}
           <a href="/admin/settings?tab=about" class="block px-3 pt-2 text-xs text-slate-400 hover:text-slate-600" title="Version, licence and how to update">
             Repair Cafe Hub {$cafe?.appVersion ?? ''}
@@ -178,7 +180,9 @@
               <a href={`/station/${stationToken}`} class="flex items-center gap-3 px-3 py-3 rounded-lg text-slate-800 hover:bg-slate-100"><Users size={20} class="text-slate-400" /> {$t('Switch volunteer')}</a>
             {/if}
             <button type="button" on:click={signOut} class="w-full flex items-center gap-3 px-3 py-3 rounded-lg text-slate-800 hover:bg-slate-100"><LogOut size={20} class="text-slate-400" /> {$t('Sign out')}</button>
-            <div class="px-3 py-2"><LanguageSwitch /></div>
+            {#if !pathname.startsWith('/admin')}
+              <div class="px-3 py-2"><LanguageSwitch /></div>
+            {/if}
           </div>
         </div>
       </div>
