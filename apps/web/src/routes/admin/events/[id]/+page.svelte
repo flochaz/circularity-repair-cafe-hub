@@ -95,8 +95,8 @@
     const ok = confirm(
       `Clear all data for "${detail.event.name}" on ${detail.event.date}?\n\n` +
         `This permanently deletes ${jobs} repair${jobs === 1 ? '' : 's'}, every pre-registration, ` +
-        'Linux record, photo, sign-up answer and the attendance list for this session.\n\n' +
-        'The session itself stays, so you can run the same QR code again. This cannot be undone.',
+        'Linux record, photo and sign-up answer for this session.\n\n' +
+        'The session itself and the volunteer attendance list stay, so you can run the same QR code again. This cannot be undone.',
     );
     if (!ok) return;
     error = '';

@@ -226,8 +226,9 @@ export async function adminEventsRoutes(app: App): Promise<void> {
   });
 
   // Wipe everything that happened at one session, for testing a setup from
-  // scratch. The event itself, its date, its QR code and its check-in token
-  // stay, so the same session can be run again.
+  // scratch. The event itself, its date, its QR code, its check-in token and
+  // the volunteer attendance list stay, so the same session can be run again
+  // with the same team.
   app.post('/api/admin/events/:id/clear', async (request, reply) => {
     const { id } = request.params as { id: string };
     const me = request.auth!;
@@ -246,10 +247,9 @@ export async function adminEventsRoutes(app: App): Promise<void> {
     const [linux] = await db.select({ n: sql<number>`COUNT(*)` }).from(linuxInstalls).where(eq(linuxInstalls.eventId, id));
     const [signups] = await db.select({ n: sql<number>`COUNT(*)` }).from(eventSignups).where(eq(eventSignups.eventId, id));
     const [roles] = await db.select({ n: sql<number>`COUNT(*)` }).from(eventRoles).where(eq(eventRoles.eventId, id));
-    const [attendance] = await db.select({ n: sql<number>`COUNT(*)` }).from(repairerEvents).where(eq(repairerEvents.eventId, id));
 
     // One transaction: either all of the session's operational data goes, or
-    // none of it does. The event row and its QR code stay.
+    // none of it does. The event row, its QR code and the attendance list stay.
     await db.batch([
       db.delete(eventSignupChoices).where(sql`signup_id IN (SELECT id FROM event_signups WHERE event_id = ${id}) OR role_id IN (SELECT id FROM event_roles WHERE event_id = ${id})`),
       db.delete(eventSignups).where(eq(eventSignups.eventId, id)),
@@ -259,7 +259,6 @@ export async function adminEventsRoutes(app: App): Promise<void> {
       db.delete(repairJobs).where(eq(repairJobs.eventId, id)),
       db.delete(linuxInstalls).where(eq(linuxInstalls.eventId, id)),
       db.delete(eventImages).where(eq(eventImages.eventId, id)),
-      db.delete(repairerEvents).where(eq(repairerEvents.eventId, id)),
     ]);
     // The rows are gone; tidy the files too. A failed delete here leaves an
     // orphan picture, never a broken page.
@@ -280,7 +279,6 @@ export async function adminEventsRoutes(app: App): Promise<void> {
         photos: repairPics.length + eventPics.length,
         signups: Number(signups.n),
         roles: Number(roles.n),
-        attendance: Number(attendance.n),
       },
     });
     return {
@@ -291,7 +289,6 @@ export async function adminEventsRoutes(app: App): Promise<void> {
       photos: repairPics.length + eventPics.length,
       signups: Number(signups.n),
       roles: Number(roles.n),
-      attendance: Number(attendance.n),
     };
   });
 

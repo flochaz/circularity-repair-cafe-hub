@@ -48,20 +48,21 @@ describe('clearing an event', () => {
     expect(res.status).toBe(403);
   });
 
-  it('removes the repairs and attendance but keeps the session', async () => {
+  it('removes the repairs but keeps the session and the attendance list', async () => {
     const before = await call(`/api/admin/events/${eventId}`, { token: admin });
     expect(before.body.jobs).toHaveLength(2);
     expect(before.body.attending).toHaveLength(1);
 
     const cleared = await call(`/api/admin/events/${eventId}/clear`, { method: 'POST', token: admin, json: {} });
     expect(cleared.status).toBe(200);
-    expect(cleared.body).toMatchObject({ ok: true, repairs: 2, attendance: 1 });
+    expect(cleared.body).toMatchObject({ ok: true, repairs: 2 });
 
     const after = await call(`/api/admin/events/${eventId}`, { token: admin });
     expect(after.status).toBe(200);
     expect(after.body.event.name).toBe('Saturday session');
     expect(after.body.jobs).toEqual([]);
-    expect(after.body.attending).toEqual([]);
+    // The people who signed up for the session are still on it.
+    expect(after.body.attending).toHaveLength(1);
 
     const queue = await call('/api/repairer/active-event', { token: repairer.token });
     expect(queue.body.event.id).toBe(eventId);
