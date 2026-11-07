@@ -1,6 +1,6 @@
 import type { App } from '../../lib/router.js';
 import { db, inList } from '../../db/index.js';
-import { cafes, eventTemplates, events, linuxInstalls, preRegistrations, repairImages, repairJobs, repairerEvents, skillCategories, users, venues } from '../../db/schema.js';
+import { cafes, eventImages, eventRoles, eventSignups, eventSignupChoices, eventTemplates, events, linuxInstalls, preRegistrations, repairImages, repairJobs, repairerEvents, skillCategories, users, venues } from '../../db/schema.js';
 import { and, asc, desc, eq, sql } from 'drizzle-orm';
 import { eventTemplateSchema, oneOffEventSchema } from '@circularity/shared';
 import { addMonthsIso, generateInstances, todayIso } from '../../services/recurrence.js';
@@ -8,6 +8,7 @@ import { generateEventQrPng, qrUrlFor } from '../../services/qrcode.js';
 import { checkInToken } from '../../utils/tokens.js';
 import { audit } from '../../utils/audit.js';
 import { env } from '../../env.js';
+import { deleteImage } from '../../services/imageUpload.js';
 
 async function regenerateQr(eventId: string): Promise<string | null> {
   const [cafe] = await db.select({ publicUrl: cafes.publicUrl }).from(cafes).limit(1);
@@ -222,6 +223,76 @@ export async function adminEventsRoutes(app: App): Promise<void> {
       metadata: { name: existing.name, date: existing.date },
     });
     return { ok: true };
+  });
+
+  // Wipe everything that happened at one session, for testing a setup from
+  // scratch. The event itself, its date, its QR code and its check-in token
+  // stay, so the same session can be run again.
+  app.post('/api/admin/events/:id/clear', async (request, reply) => {
+    const { id } = request.params as { id: string };
+    const me = request.auth!;
+    const [existing] = await db.select().from(events).where(eq(events.id, id)).limit(1);
+    if (!existing) {
+      reply.code(404).send({ error: 'Event not found', code: 'event/not_found' });
+      return;
+    }
+    const jobs = await db.select({ id: repairJobs.id }).from(repairJobs).where(eq(repairJobs.eventId, id));
+    const jobIds = jobs.map((j) => j.id);
+    const repairPics = jobIds.length
+      ? await db.select({ filePath: repairImages.filePath }).from(repairImages).where(inList(repairImages.repairJobId, jobIds))
+      : [];
+    const eventPics = await db.select({ filePath: eventImages.filePath }).from(eventImages).where(eq(eventImages.eventId, id));
+    const [pre] = await db.select({ n: sql<number>`COUNT(*)` }).from(preRegistrations).where(eq(preRegistrations.eventId, id));
+    const [linux] = await db.select({ n: sql<number>`COUNT(*)` }).from(linuxInstalls).where(eq(linuxInstalls.eventId, id));
+    const [signups] = await db.select({ n: sql<number>`COUNT(*)` }).from(eventSignups).where(eq(eventSignups.eventId, id));
+    const [roles] = await db.select({ n: sql<number>`COUNT(*)` }).from(eventRoles).where(eq(eventRoles.eventId, id));
+    const [attendance] = await db.select({ n: sql<number>`COUNT(*)` }).from(repairerEvents).where(eq(repairerEvents.eventId, id));
+
+    // One transaction: either all of the session's operational data goes, or
+    // none of it does. The event row and its QR code stay.
+    await db.batch([
+      db.delete(eventSignupChoices).where(sql`signup_id IN (SELECT id FROM event_signups WHERE event_id = ${id}) OR role_id IN (SELECT id FROM event_roles WHERE event_id = ${id})`),
+      db.delete(eventSignups).where(eq(eventSignups.eventId, id)),
+      db.delete(eventRoles).where(eq(eventRoles.eventId, id)),
+      db.delete(repairImages).where(inList(repairImages.repairJobId, jobIds)),
+      db.delete(preRegistrations).where(eq(preRegistrations.eventId, id)),
+      db.delete(repairJobs).where(eq(repairJobs.eventId, id)),
+      db.delete(linuxInstalls).where(eq(linuxInstalls.eventId, id)),
+      db.delete(eventImages).where(eq(eventImages.eventId, id)),
+      db.delete(repairerEvents).where(eq(repairerEvents.eventId, id)),
+    ]);
+    // The rows are gone; tidy the files too. A failed delete here leaves an
+    // orphan picture, never a broken page.
+    await Promise.allSettled([...repairPics, ...eventPics].map((p) => deleteImage(p.filePath)));
+    await audit({
+      request,
+      actorId: me.sub,
+      actorType: me.role,
+      action: 'event.data_cleared',
+      entityType: 'event',
+      entityId: id,
+      metadata: {
+        name: existing.name,
+        date: existing.date,
+        repairs: jobIds.length,
+        preRegistrations: Number(pre.n),
+        linuxInstalls: Number(linux.n),
+        photos: repairPics.length + eventPics.length,
+        signups: Number(signups.n),
+        roles: Number(roles.n),
+        attendance: Number(attendance.n),
+      },
+    });
+    return {
+      ok: true,
+      repairs: jobIds.length,
+      preRegistrations: Number(pre.n),
+      linuxInstalls: Number(linux.n),
+      photos: repairPics.length + eventPics.length,
+      signups: Number(signups.n),
+      roles: Number(roles.n),
+      attendance: Number(attendance.n),
+    };
   });
 
   app.post('/api/admin/events/:id/activate', async (request, reply) => {
