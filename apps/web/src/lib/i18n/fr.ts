@@ -21,6 +21,8 @@ export const fr: Record<string, string> = {
   'Last name': 'Nom',
   'Phone number': 'Téléphone',
   'Email address': 'E-mail',
+  'Postal code': 'Code postal',
+  City: 'Ville',
   '(required)': '(obligatoire)',
   'Please check the email address': 'Vérifiez l’adresse e-mail',
   'Is this your first visit to us? (optional)': 'Est-ce votre première visite chez nous ? (facultatif)',

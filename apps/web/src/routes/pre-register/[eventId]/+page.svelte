@@ -32,6 +32,8 @@
 
   let customerName = '';
   let customerContact = '';
+  let customerPostalCode = '';
+  let customerCity = '';
   let consent = false;
   // Newsletter consent is separate from the consent to store the repair.
   let newsletterOptIn = false;
@@ -89,6 +91,8 @@
       } else {
         payload.customerName = customerName.trim();
         payload.customerContact = customerContact.trim() || null;
+        payload.customerPostalCode = customerPostalCode.trim() || null;
+        payload.customerCity = customerCity.trim() || null;
         payload.gdprConsent = true;
         payload.newsletterOptIn = newsletterOptIn;
         payload.newsletterEmail = newsletterOptIn ? newsletterEmail.trim() || null : null;
@@ -122,6 +126,8 @@
     saved = null;
     customerName = '';
     customerContact = '';
+    customerPostalCode = '';
+    customerCity = '';
     consent = false;
     newsletterOptIn = false;
     newsletterEmail = '';
@@ -229,6 +235,16 @@
                 <div>
                   <label class="label" for="pc">Phone or email <span class="font-normal text-slate-500">(optional, if a repairer may contact you about the item)</span></label>
                   <input id="pc" class="input" maxlength="100" bind:value={customerContact} />
+                </div>
+                <div class="grid sm:grid-cols-2 gap-4">
+                  <div>
+                    <label class="label" for="pz">Postal code <span class="font-normal text-slate-500">(optional)</span></label>
+                    <input id="pz" class="input" maxlength="20" bind:value={customerPostalCode} autocomplete="postal-code" />
+                  </div>
+                  <div>
+                    <label class="label" for="cy">City <span class="font-normal text-slate-500">(optional)</span></label>
+                    <input id="cy" class="input" maxlength="100" bind:value={customerCity} autocomplete="address-level2" />
+                  </div>
                 </div>
               {/if}
               <label class="flex items-start gap-3 cursor-pointer">

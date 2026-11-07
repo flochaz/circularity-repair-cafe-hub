@@ -51,6 +51,8 @@
   let customerLastName = '';
   let customerPhone = '';
   let customerEmail = '';
+  let customerPostalCode = '';
+  let customerCity = '';
   let gdpr = false;
   // Newsletter consent is separate from consent to store the repair. It is never
   // pre-ticked, and only the address given for it is kept.
@@ -308,6 +310,8 @@
           .join(' ');
         payload.customerContact = customerPhone.trim() || null;
         payload.customerEmail = customerEmail.trim() || null;
+        payload.customerPostalCode = customerPostalCode.trim() || null;
+        payload.customerCity = customerCity.trim() || null;
         payload.gdprConsent = true;
         payload.newsletterOptIn = newsletterOptIn && isValidEmail(customerEmail);
         payload.newsletterEmail = newsletterOptIn ? customerEmail.trim() : null;
@@ -391,6 +395,8 @@
     customerLastName = '';
     customerPhone = '';
     customerEmail = '';
+    customerPostalCode = '';
+    customerCity = '';
     gdpr = false;
     newsletterOptIn = false;
     itemDescription = '';
@@ -551,6 +557,14 @@
                 <div>
                   <label class="label text-base" for="ce">{$t('Email address')} <span class="font-normal text-slate-500">{$t('(optional)')}</span></label>
                   <input id="ce" class="input text-lg py-4" type="email" maxlength="200" bind:value={customerEmail} autocomplete="email" />
+                </div>
+                <div>
+                  <label class="label text-base" for="cpz">{$t('Postal code')} <span class="font-normal text-slate-500">{$t('(optional)')}</span></label>
+                  <input id="cpz" class="input text-lg py-4" maxlength="20" bind:value={customerPostalCode} autocomplete="postal-code" />
+                </div>
+                <div>
+                  <label class="label text-base" for="cc">{$t('City')} <span class="font-normal text-slate-500">{$t('(optional)')}</span></label>
+                  <input id="cc" class="input text-lg py-4" maxlength="100" bind:value={customerCity} autocomplete="address-level2" />
                 </div>
               {/if}
             </div>

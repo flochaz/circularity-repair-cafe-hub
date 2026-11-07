@@ -104,6 +104,8 @@ export const checkInSubmitSchema = z
     customerName: z.string().min(1).max(50).optional(),
     customerContact: z.string().max(100).optional().nullable(),
     customerEmail: z.string().email().max(200).optional().nullable(),
+    customerPostalCode: z.string().max(20).optional().nullable(),
+    customerCity: z.string().max(100).optional().nullable(),
     gdprConsent: z.boolean().optional(),
     // Marketing consent is separate from the consent to store the repair, and
     // is never assumed. An email is required when it is given.
@@ -150,6 +152,8 @@ export const assistedCheckInSchema = z
     customerName: z.string().max(100).optional().nullable(),
     customerContact: z.string().max(100).optional().nullable(),
     customerEmail: z.string().email().max(200).optional().nullable(),
+    customerPostalCode: z.string().max(20).optional().nullable(),
+    customerCity: z.string().max(100).optional().nullable(),
     gdprConsent: z.boolean().optional(),
     // Marketing consent is separate from the consent to store the repair, and
     // is never assumed. An email is required when it is given.
@@ -172,7 +176,7 @@ export const assistedCheckInSchema = z
   })
   .refine(
     (v) => {
-      const hasPii = Boolean(v.customerName?.trim()) || Boolean(v.customerContact?.trim()) || Boolean(v.customerEmail?.trim());
+      const hasPii = Boolean(v.customerName?.trim()) || Boolean(v.customerContact?.trim()) || Boolean(v.customerEmail?.trim()) || Boolean(v.customerPostalCode?.trim()) || Boolean(v.customerCity?.trim());
       return !hasPii || v.gdprConsent === true;
     },
     {
@@ -198,6 +202,8 @@ export const jobEditSchema = z.object({
   customerName: z.string().max(100).optional().nullable(),
   customerContact: z.string().max(100).optional().nullable(),
   customerEmail: z.string().email().max(200).optional().nullable(),
+  customerPostalCode: z.string().max(20).optional().nullable(),
+  customerCity: z.string().max(100).optional().nullable(),
   weightKg: z.number().nonnegative().max(1000).optional().nullable(),
   isFirstVisit: z.boolean().optional().nullable(),
   cardNumber: z.number().int().positive().max(999).optional().nullable(),
@@ -348,6 +354,8 @@ export const repairUpdateSchema = z.object({
   customerName: z.string().max(50).optional().nullable(),
   customerContact: z.string().max(100).optional().nullable(),
   customerEmail: z.string().email().max(200).optional().nullable(),
+  customerPostalCode: z.string().max(20).optional().nullable(),
+  customerCity: z.string().max(100).optional().nullable(),
   itemDescription: z.string().max(200).optional(),
   faultDescription: z.string().max(500).optional(),
   itemCategoryId: z.string().uuid().optional().nullable(),

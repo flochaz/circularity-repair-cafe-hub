@@ -37,6 +37,8 @@
     customerName: '',
     customerContact: '',
     customerEmail: '',
+    customerPostalCode: '',
+    customerCity: '',
     outcomeNotes: '',
     partsUsed: '',
     environmentalSavingKg: '' as string | number,
@@ -68,6 +70,8 @@
       customerName: detail.job.customerName ?? '',
       customerContact: detail.job.customerContact ?? '',
       customerEmail: detail.job.customerEmail ?? '',
+      customerPostalCode: detail.job.customerPostalCode ?? '',
+      customerCity: detail.job.customerCity ?? '',
       outcomeNotes: detail.job.outcomeNotes ?? '',
       partsUsed: detail.job.partsUsed ?? '',
       environmentalSavingKg: detail.job.environmentalSavingKg ?? '',
@@ -98,6 +102,8 @@
           customerName: form.customerName || null,
           customerContact: form.customerContact || null,
           customerEmail: form.customerEmail || null,
+          customerPostalCode: form.customerPostalCode || null,
+          customerCity: form.customerCity || null,
           outcomeNotes: form.outcomeNotes || null,
           partsUsed: form.partsUsed || null,
           environmentalSavingKg: form.environmentalSavingKg === '' ? null : Number(form.environmentalSavingKg),
@@ -273,6 +279,8 @@
       <div><label class="label" for="cn">Customer</label><input id="cn" class="input" bind:value={form.customerName} /></div>
       <div><label class="label" for="cc">Phone</label><input id="cc" class="input" bind:value={form.customerContact} /></div>
       <div><label class="label" for="ce">Email</label><input id="ce" class="input" type="email" bind:value={form.customerEmail} /></div>
+      <div><label class="label" for="cpz">Postal code</label><input id="cpz" class="input" maxlength="20" bind:value={form.customerPostalCode} /></div>
+      <div><label class="label" for="ccity">City</label><input id="ccity" class="input" maxlength="100" bind:value={form.customerCity} /></div>
     </div>
     <div><label class="label" for="on">Repair notes</label><textarea id="on" class="input" rows="3" bind:value={form.outcomeNotes}></textarea></div>
     <div class="grid sm:grid-cols-2 gap-3">

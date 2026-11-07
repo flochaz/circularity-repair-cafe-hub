@@ -99,6 +99,8 @@ export async function preRegistrationPublicRoutes(app: App): Promise<void> {
     let customerName = data.customerName ?? null;
     let customerContact = features.enableContactField ? data.customerContact?.trim() || null : null;
     let customerEmail = features.enableContactField ? data.customerEmail?.trim().toLowerCase() || null : null;
+    let customerPostalCode = features.enableContactField ? data.customerPostalCode?.trim() || null : null;
+    let customerCity = features.enableContactField ? data.customerCity?.trim() || null : null;
     let gdprConsent = data.gdprConsent === true;
     let newsletterOptIn = data.newsletterOptIn === true;
     let newsletterEmail = data.newsletterEmail?.trim().toLowerCase() || null;
@@ -108,6 +110,8 @@ export async function preRegistrationPublicRoutes(app: App): Promise<void> {
           customerName: preRegistrations.customerName,
           customerContact: preRegistrations.customerContact,
           customerEmail: preRegistrations.customerEmail,
+          customerPostalCode: preRegistrations.customerPostalCode,
+          customerCity: preRegistrations.customerCity,
           gdprConsent: preRegistrations.gdprConsent,
           newsletterOptIn: preRegistrations.newsletterOptIn,
           newsletterEmail: preRegistrations.newsletterEmail,
@@ -128,6 +132,8 @@ export async function preRegistrationPublicRoutes(app: App): Promise<void> {
         customerName = known.customerName;
         customerContact = known.customerContact;
         customerEmail = known.customerEmail;
+        customerPostalCode = known.customerPostalCode;
+        customerCity = known.customerCity;
         gdprConsent = known.gdprConsent;
         // The newsletter choice is per item. Only inherit it when the caller
         // sent no choice at all.
@@ -156,6 +162,8 @@ export async function preRegistrationPublicRoutes(app: App): Promise<void> {
         customerName,
         customerContact,
         customerEmail,
+        customerPostalCode,
+        customerCity,
         customerToken,
         itemDescription: data.itemDescription,
         itemCategoryId: data.itemCategoryId ?? null,

@@ -103,6 +103,8 @@
     customerName: '',
     customerContact: '',
     customerEmail: '',
+    customerPostalCode: '',
+    customerCity: '',
     cardNumber: '' as string | number,
     weightKg: '' as string | number,
     firstVisit: '' as '' | 'yes' | 'no',
@@ -225,6 +227,8 @@
       customerName: detail.job.customerName ?? '',
       customerContact: detail.job.customerContact ?? '',
       customerEmail: detail.job.customerEmail ?? '',
+      customerPostalCode: detail.job.customerPostalCode ?? '',
+      customerCity: detail.job.customerCity ?? '',
       cardNumber: detail.job.cardNumber ?? '',
       weightKg: detail.job.weightKg ?? '',
       firstVisit: detail.job.isFirstVisit === true ? 'yes' : detail.job.isFirstVisit === false ? 'no' : '',
@@ -280,6 +284,8 @@
           customerName: edit.customerName.trim() || null,
           customerContact: edit.customerContact.trim() || null,
           customerEmail: email || null,
+          customerPostalCode: edit.customerPostalCode.trim() || null,
+          customerCity: edit.customerCity.trim() || null,
           cardNumber,
           weightKg,
           isFirstVisit: edit.firstVisit === 'yes' ? true : edit.firstVisit === 'no' ? false : null,
@@ -473,7 +479,7 @@
             <User size={16} class="text-slate-400 mt-0.5 shrink-0" />
             <div>
               <dt class="text-slate-500">{$t('Visitor')}</dt>
-              <dd class="text-slate-900">{detail.job.customerName ?? $t('Not given')}{#if detail.job.customerContact}<span class="block text-slate-600">{detail.job.customerContact}</span>{/if}{#if detail.job.customerEmail}<span class="block text-slate-600">{detail.job.customerEmail}</span>{/if}</dd>
+              <dd class="text-slate-900">{detail.job.customerName ?? $t('Not given')}{#if detail.job.customerContact}<span class="block text-slate-600">{detail.job.customerContact}</span>{/if}{#if detail.job.customerEmail}<span class="block text-slate-600">{detail.job.customerEmail}</span>{/if}{#if detail.job.customerPostalCode || detail.job.customerCity}<span class="block text-slate-600">{[detail.job.customerPostalCode, detail.job.customerCity].filter(Boolean).join(' ')}</span>{/if}</dd>
             </div>
           </div>
           <div>
@@ -530,6 +536,14 @@
               <div>
                 <label class="label" for="edit-email">{$t('Email address')} <span class="font-normal text-slate-400">{$t('(optional)')}</span></label>
                 <input id="edit-email" class="input" type="email" maxlength="200" bind:value={edit.customerEmail} />
+              </div>
+              <div>
+                <label class="label" for="edit-postal">{$t('Postal code')} <span class="font-normal text-slate-400">{$t('(optional)')}</span></label>
+                <input id="edit-postal" class="input" maxlength="20" bind:value={edit.customerPostalCode} />
+              </div>
+              <div>
+                <label class="label" for="edit-city">{$t('City')} <span class="font-normal text-slate-400">{$t('(optional)')}</span></label>
+                <input id="edit-city" class="input" maxlength="100" bind:value={edit.customerCity} />
               </div>
               {#if $cafe?.cardNumbersEnabled || (edit.cardNumber !== '' && edit.cardNumber !== null)}
                 <div>

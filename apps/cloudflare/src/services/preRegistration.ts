@@ -118,6 +118,8 @@ export async function checkInPreRegistration(pre: PreRegistration, at: Date = ne
           customerName: pre.customerName,
           customerContact: pre.customerContact,
           customerEmail: pre.customerEmail,
+          customerPostalCode: pre.customerPostalCode,
+          customerCity: pre.customerCity,
           customerToken: pre.customerToken,
           itemDescription: pre.itemDescription,
           itemCategoryId: pre.itemCategoryId,

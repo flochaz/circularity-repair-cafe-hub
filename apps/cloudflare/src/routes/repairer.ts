@@ -247,8 +247,15 @@ export async function repairerRoutes(app: App): Promise<void> {
     const customerName = data.customerName?.trim() || null;
     const customerContact = data.customerContact?.trim() || null;
     const customerEmail = data.customerEmail?.trim().toLowerCase() || null;
+    const customerPostalCode = data.customerPostalCode?.trim() || null;
+    const customerCity = data.customerCity?.trim() || null;
     // Only record consent when we are actually storing something personal.
-    const hasPii = Boolean(customerName) || Boolean(customerContact) || Boolean(customerEmail);
+    const hasPii =
+      Boolean(customerName) ||
+      Boolean(customerContact) ||
+      Boolean(customerEmail) ||
+      Boolean(customerPostalCode) ||
+      Boolean(customerCity);
     const gdprConsent = hasPii ? data.gdprConsent === true : false;
     // Newsletter consent is separate from consent to store the repair.
     const newsletterOptIn = data.newsletterOptIn === true;
@@ -279,6 +286,8 @@ export async function repairerRoutes(app: App): Promise<void> {
           customerName,
           customerContact,
           customerEmail,
+          customerPostalCode,
+          customerCity,
           customerToken,
           itemDescription: data.itemDescription,
           itemCategoryId: data.itemCategoryId ?? null,
@@ -426,6 +435,8 @@ export async function repairerRoutes(app: App): Promise<void> {
         customerName: data.customerName?.trim() || null,
         customerContact: data.customerContact?.trim() || null,
         customerEmail: data.customerEmail?.trim().toLowerCase() || null,
+        customerPostalCode: data.customerPostalCode?.trim() || null,
+        customerCity: data.customerCity?.trim() || null,
         weightKg: data.weightKg != null ? String(data.weightKg) : null,
         isFirstVisit: data.isFirstVisit ?? null,
         cardNumber,

@@ -26,6 +26,8 @@ describe('check-in details', () => {
     const job = await call(`/api/checkin/${checkInToken}/jobs`, {
       json: {
         customerName: 'Sam Visitor',
+        customerPostalCode: '75001',
+        customerCity: 'Paris',
         gdprConsent: true,
         itemDescription: 'Kettle',
         faultDescription: 'No power',
@@ -39,6 +41,8 @@ describe('check-in details', () => {
     // The numeric column reads back with a fixed number of decimals.
     expect(stored.body.job.weightKg).toBe('1.250');
     expect(stored.body.job.isFirstVisit).toBe(true);
+    expect(stored.body.job.customerPostalCode).toBe('75001');
+    expect(stored.body.job.customerCity).toBe('Paris');
   });
 
   it('a staff-assisted check-in can record them too, and stats total the weight', async () => {
@@ -77,6 +81,8 @@ describe('check-in details', () => {
         customerName: 'Ada Lovelace',
         customerContact: '0600000000',
         customerEmail: 'Ada@Example.org',
+        customerPostalCode: '06000',
+        customerCity: 'Nice',
         gdprConsent: true,
         newsletterOptIn: true,
         newsletterEmail: 'Ada@Example.org',
@@ -87,6 +93,8 @@ describe('check-in details', () => {
     expect(stored.body.job.customerName).toBe('Ada Lovelace');
     expect(stored.body.job.customerContact).toBe('0600000000');
     expect(stored.body.job.customerEmail).toBe('ada@example.org');
+    expect(stored.body.job.customerPostalCode).toBe('06000');
+    expect(stored.body.job.customerCity).toBe('Nice');
     expect(stored.body.job.newsletterOptIn).toBe(true);
     expect(stored.body.job.newsletterEmail).toBe('ada@example.org');
   });

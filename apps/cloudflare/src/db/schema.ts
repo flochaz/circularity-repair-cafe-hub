@@ -450,6 +450,9 @@ export const repairJobs = sqliteTable(
     customerContact: text('customer_contact'),
     /** The visitor's email, kept apart from the free-text phone. */
     customerEmail: text('customer_email'),
+    /** Optional address, kept with the visitor's other details. */
+    customerPostalCode: text('customer_postal_code'),
+    customerCity: text('customer_city'),
     customerToken: text('customer_token'),
     /** Whether this is the visitor's first time at the cafe. Optional. */
     isFirstVisit: bool('is_first_visit'),
@@ -591,6 +594,9 @@ export const preRegistrations = sqliteTable(
     customerContact: text('customer_contact'),
     /** The visitor's email, kept apart from the free-text phone. */
     customerEmail: text('customer_email'),
+    /** Optional address, carried over to the repair at check-in. */
+    customerPostalCode: text('customer_postal_code'),
+    customerCity: text('customer_city'),
     /** The same token as the repairs it becomes, so one tracking link shows both. */
     customerToken: text('customer_token').notNull(),
     itemDescription: text('item_description').notNull(),

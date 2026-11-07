@@ -193,6 +193,8 @@ describe('pre-registration', () => {
       json: {
         customerName: 'Priya',
         customerContact: 'priya@example.org',
+        customerPostalCode: '06000',
+        customerCity: 'Nice',
         gdprConsent: true,
         itemDescription: 'Roberts radio',
         itemBrand: 'Roberts',
@@ -348,6 +350,8 @@ describe('pre-registration', () => {
     expect(detail.job.acceptedAt).toBe(detail.job.createdAt);
     expect(new Date(detail.job.acceptedAt).getTime()).toBeGreaterThanOrEqual(before - 1000);
     expect(detail.job.customerContact).toBe('priya@example.org');
+    expect(detail.job.customerPostalCode).toBe('06000');
+    expect(detail.job.customerCity).toBe('Nice');
     expect(detail.preRegistration.researchNotes).toContain('dry joint');
     expect(detail.pat.needed).toBe(true);
 

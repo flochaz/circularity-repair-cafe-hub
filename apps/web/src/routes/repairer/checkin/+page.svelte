@@ -30,6 +30,8 @@
   let customerLastName = '';
   let customerPhone = '';
   let customerEmail = '';
+  let customerPostalCode = '';
+  let customerCity = '';
   let consent = false;
   // Newsletter consent is separate from the consent to store the repair. It is
   // never pre-ticked, and it needs an email address.
@@ -109,7 +111,9 @@
     customerName.trim().length > 0 ||
     customerLastName.trim().length > 0 ||
     customerPhone.trim().length > 0 ||
-    customerEmail.trim().length > 0;
+    customerEmail.trim().length > 0 ||
+    customerPostalCode.trim().length > 0 ||
+    customerCity.trim().length > 0;
 
   /** A simple check: the newsletter box only works with a real-looking address. */
   function isValidEmail(value: string): boolean {
@@ -211,6 +215,8 @@
         customerName: fullName || null,
         customerContact: customerPhone.trim() || null,
         customerEmail: customerEmail.trim() || null,
+        customerPostalCode: customerPostalCode.trim() || null,
+        customerCity: customerCity.trim() || null,
         gdprConsent: hasPii ? consent : false,
         newsletterOptIn: newsletterOptIn && isValidEmail(customerEmail),
         newsletterEmail: newsletterOptIn ? customerEmail.trim() : null,
@@ -255,6 +261,8 @@
     customerLastName = '';
     customerPhone = '';
     customerEmail = '';
+    customerPostalCode = '';
+    customerCity = '';
     consent = false;
     newsletterOptIn = false;
     showPhoto = false;
@@ -377,6 +385,14 @@
           <div>
             <label class="label" for="ce">{$t('Email address')} <span class="font-normal text-slate-400">{$t('(optional)')}</span></label>
             <input id="ce" class="input" type="email" maxlength="200" bind:value={customerEmail} autocomplete="off" />
+          </div>
+          <div>
+            <label class="label" for="cpz">{$t('Postal code')} <span class="font-normal text-slate-400">{$t('(optional)')}</span></label>
+            <input id="cpz" class="input" maxlength="20" bind:value={customerPostalCode} autocomplete="off" />
+          </div>
+          <div>
+            <label class="label" for="cc">{$t('City')} <span class="font-normal text-slate-400">{$t('(optional)')}</span></label>
+            <input id="cc" class="input" maxlength="100" bind:value={customerCity} autocomplete="off" />
           </div>
         </div>
         {#if hasPii}
