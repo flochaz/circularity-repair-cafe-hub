@@ -286,11 +286,13 @@
     <div class="grid sm:grid-cols-2 gap-3">
       <div><label class="label" for="pa">Parts used</label><input id="pa" class="input" bind:value={form.partsUsed} /></div>
       <div><label class="label" for="es">Saving (kg)</label><input id="es" class="input" type="number" step="0.001" bind:value={form.environmentalSavingKg} /></div>
+      {#if $cafe?.askDonationEnabled || form.donationAmount !== ''}
       <div>
         <label class="label" for="don">Donation (€)</label>
         <input id="don" class="input" type="number" min="0" max="10000" step="0.01" bind:value={form.donationAmount} />
         <p class="mt-1 text-xs text-slate-500">Money given at the exit.</p>
       </div>
+      {/if}
     </div>
     <!-- Shown while the cafe asks for them, or when this repair already has an answer. -->
     {#if $cafe?.weighItemsEnabled || $cafe?.askFirstVisitEnabled || form.weightKg !== '' || form.firstVisit !== ''}

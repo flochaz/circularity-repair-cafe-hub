@@ -69,6 +69,8 @@ export interface CafeInfo {
   askFirstVisitEnabled?: boolean;
   /** Ask the visitor at the exit if they are satisfied. Off unless an admin turns it on. */
   askSatisfactionEnabled?: boolean;
+  /** Ask for a donation at the exit. Off unless an admin turns it on. */
+  askDonationEnabled?: boolean;
   /** Visitors get a numbered card at check-in. Off unless an admin turns it on. */
   cardNumbersEnabled?: boolean;
   gallery: GalleryImage[];

@@ -63,6 +63,7 @@ export async function publicRoutes(app: App): Promise<void> {
       weighItemsEnabled: cafe.weighItemsEnabled,
       askFirstVisitEnabled: cafe.askFirstVisitEnabled,
       askSatisfactionEnabled: cafe.askSatisfactionEnabled,
+      askDonationEnabled: cafe.askDonationEnabled,
       // Numbered cards handed to visitors at check-in. Off unless turned on.
       cardNumbersEnabled: cafe.cardNumbersEnabled,
       primaryColor: cafe.primaryColor,

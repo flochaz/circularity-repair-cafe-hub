@@ -2,6 +2,7 @@
   import { page } from '$app/stores';
   import { onMount } from 'svelte';
   import { api } from '$lib/api';
+  import { cafe } from '$lib/stores/cafe';
   import CardNumber from '$lib/components/CardNumber.svelte';
   import Icon from '@iconify/svelte';
   import { categoryIcon } from '$lib/categoryIcon';
@@ -148,11 +149,13 @@
       <p class="text-2xl font-bold mt-1">{detail.totals.savedWeightKg.toFixed(1)}<span class="text-sm font-normal text-slate-500"> kg</span></p>
       <p class="text-xs text-slate-400 mt-0.5">weight of repaired items</p>
     </div>
+    {#if $cafe?.askDonationEnabled}
     <div class="card p-4">
       <div class="flex items-center gap-2 text-slate-500 text-xs"><Euro size={14} /> Donations</div>
       <p class="text-2xl font-bold mt-1">€{detail.totals.donations.toFixed(2)}</p>
       <p class="text-xs text-slate-400 mt-0.5">given at the exit</p>
     </div>
+    {/if}
   </div>
 
   <!-- Linux help is an extra offered at an ordinary session, so it is reported

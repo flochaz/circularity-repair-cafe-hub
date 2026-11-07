@@ -823,28 +823,30 @@
               </label>
             </div>
           {/if}
-          <form class="pt-3 mt-1 border-t border-slate-100" on:submit|preventDefault={saveDonation}>
-            <label class="label" for="donation">{$t('Donation (€)')}</label>
-            <div class="flex gap-2">
-              <input
-                id="donation"
-                class="input"
-                type="number"
-                min="0"
-                max="10000"
-                step="0.01"
-                inputmode="decimal"
-                placeholder={$t('Amount')}
-                bind:value={donationInput}
-                disabled={savingDonation}
-              />
-              <button type="submit" class="btn-secondary shrink-0" disabled={savingDonation}>
-                {savingDonation ? $t('Saving…') : $t('Save')}
-              </button>
-            </div>
-            <p class="mt-1 text-xs text-slate-500">{$t('Money given at the exit, if any.')}</p>
-            {#if donationError}<p class="mt-1 text-sm text-rose-700">{donationError}</p>{/if}
-          </form>
+          {#if $cafe?.askDonationEnabled || detail.job.donationAmount != null}
+            <form class="pt-3 mt-1 border-t border-slate-100" on:submit|preventDefault={saveDonation}>
+              <label class="label" for="donation">{$t('Donation (€)')}</label>
+              <div class="flex gap-2">
+                <input
+                  id="donation"
+                  class="input"
+                  type="number"
+                  min="0"
+                  max="10000"
+                  step="0.01"
+                  inputmode="decimal"
+                  placeholder={$t('Amount')}
+                  bind:value={donationInput}
+                  disabled={savingDonation}
+                />
+                <button type="submit" class="btn-secondary shrink-0" disabled={savingDonation}>
+                  {savingDonation ? $t('Saving…') : $t('Save')}
+                </button>
+              </div>
+              <p class="mt-1 text-xs text-slate-500">{$t('Money given at the exit, if any.')}</p>
+              {#if donationError}<p class="mt-1 text-sm text-rose-700">{donationError}</p>{/if}
+            </form>
+          {/if}
           {#if $cafe?.askSatisfactionEnabled}
           <div class="pt-3 mt-1 border-t border-slate-100">
             <p class="text-sm font-medium text-slate-700">{$t('At the exit, was the visitor satisfied?')}</p>

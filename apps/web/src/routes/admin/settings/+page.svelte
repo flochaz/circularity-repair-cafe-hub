@@ -340,6 +340,7 @@
           weighItemsEnabled: cafe.weighItemsEnabled === true,
           askFirstVisitEnabled: cafe.askFirstVisitEnabled === true,
           askSatisfactionEnabled: cafe.askSatisfactionEnabled === true,
+          askDonationEnabled: cafe.askDonationEnabled === true,
           cardNumbersEnabled: cafe.cardNumbersEnabled === true,
         },
       });
@@ -1217,6 +1218,19 @@
           comment. Any volunteer can record the answer, so the person at the door does not have to be the repairer. The
           Statistics page shows the share of visitors who were satisfied. A comment is removed with the visitor's other
           personal details at the end of the data retention period.
+        </p>
+      </section>
+
+      <section class="pt-4 border-t border-slate-200 space-y-2">
+        <h2 class="text-lg font-semibold">Donation at the exit</h2>
+        <label class="flex items-start gap-3">
+          <input type="checkbox" class="mt-1" bind:checked={cafe.askDonationEnabled} />
+          <span>Ask for a donation when the visitor collects their item</span>
+        </label>
+        <p class="text-sm text-slate-600">
+          When this is on, a finished repair's page has a Donation (€) field beside the satisfaction question.
+          The repair queue shows a running total, and the session and period reports add donations up. Off by
+          default.
         </p>
       </section>
 

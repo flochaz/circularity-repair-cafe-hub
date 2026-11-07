@@ -225,7 +225,7 @@
     </div>
   </header>
 
-  <dl class="mt-5 grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-3">
+  <dl class="mt-5 grid grid-cols-2 {$cafe?.askDonationEnabled ? 'md:grid-cols-4' : 'md:grid-cols-3'} gap-2 md:gap-3">
     <div class="card px-4 py-3">
       <dt class="text-xs text-slate-500 flex items-center gap-1.5"><span class="status-dot status-dot-waiting"></span> {$t('Waiting')}</dt>
       <dd class="text-2xl md:text-3xl font-bold text-slate-900">{waiting.length}</dd>
@@ -238,10 +238,12 @@
       <dt class="text-xs text-slate-500 flex items-center gap-1.5"><span class="status-dot status-dot-completed"></span> {$t('Fixed today')}</dt>
       <dd class="text-2xl md:text-3xl font-bold text-slate-900">{fixedCount}</dd>
     </div>
+    {#if $cafe?.askDonationEnabled}
     <div class="card px-4 py-3">
       <dt class="text-xs text-slate-500 flex items-center gap-1.5"><Euro size={14} class="text-slate-400" /> {$t('Donations')}</dt>
       <dd class="text-2xl md:text-3xl font-bold text-slate-900">{money(data.donationsTotal)}</dd>
     </div>
+    {/if}
   </dl>
 
   {#if loadError}

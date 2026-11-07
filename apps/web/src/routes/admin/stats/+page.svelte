@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { api, download } from '$lib/api';
+  import { cafe } from '$lib/stores/cafe';
   import { CalendarDays, Wrench, Users, Scale, Clock, CheckCircle2, Euro } from 'lucide-svelte';
 
   type Range = '3m' | '6m' | '12m' | 'all';
@@ -217,11 +218,13 @@
       <p class="text-2xl font-bold mt-1">{overview.fixedWeightKg.toFixed(1)}<span class="text-sm font-normal text-slate-500"> kg</span></p>
       <p class="text-xs text-slate-400 mt-0.5">weight of repaired items</p>
     </div>
+    {#if $cafe?.askDonationEnabled}
     <div class="card p-4">
       <div class="flex items-center gap-2 text-slate-500 text-xs"><Euro size={14} /> Donations</div>
       <p class="text-2xl font-bold mt-1">€{overview.donations.toFixed(2)}</p>
       <p class="text-xs text-slate-400 mt-0.5">given at the exit</p>
     </div>
+    {/if}
   </div>
 {/if}
 

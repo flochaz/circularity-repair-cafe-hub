@@ -192,6 +192,8 @@ export const cafes = sqliteTable('cafes', {
   askFirstVisitEnabled: bool('ask_first_visit_enabled').notNull().default(false),
   /** Ask the visitor at the exit whether they are satisfied. */
   askSatisfactionEnabled: bool('ask_satisfaction_enabled').notNull().default(false),
+  /** Ask for a donation at the exit. */
+  askDonationEnabled: bool('ask_donation_enabled').notNull().default(false),
   /** Give each visitor a numbered card for the session. */
   cardNumbersEnabled: bool('card_numbers_enabled').notNull().default(false),
   /** The cafe's country for the ORDS export, as a 3-letter code such as GBR. */

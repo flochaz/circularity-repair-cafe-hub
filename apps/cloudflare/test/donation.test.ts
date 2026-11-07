@@ -41,6 +41,19 @@ describe('donations at the exit', () => {
     await call(`/api/repairer/jobs/${jobId}/complete`, { method: 'PATCH', token: repairer, json: { outcome: 'completed' } });
   });
 
+  it('is off by default, and can be switched on by an admin', async () => {
+    let profile = await call('/api/public/cafe');
+    expect(profile.body.askDonationEnabled).toBe(false);
+    const on = await call('/api/admin/settings/preferences', {
+      method: 'PATCH',
+      token: admin,
+      json: { askDonationEnabled: true },
+    });
+    expect(on.status).toBe(200);
+    profile = await call('/api/public/cafe');
+    expect(profile.body.askDonationEnabled).toBe(true);
+  });
+
   it('records money given at the exit, and adds it up for the session', async () => {
     const saved = await call(`/api/repairer/jobs/${jobId}/donation`, {
       method: 'PATCH',
