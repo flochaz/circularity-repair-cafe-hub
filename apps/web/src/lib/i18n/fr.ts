@@ -239,6 +239,11 @@ export const fr: Record<string, string> = {
   Cancel: 'Annuler',
   'Yes, take it over': 'Oui, prendre en charge',
   View: 'Voir',
+  'Search the queue': 'Rechercher dans la file',
+  'Search by card, name or object type': 'Rechercher par carte, nom ou type d’objet',
+  'Clear search': 'Effacer la recherche',
+  'Search results': 'Résultats de recherche',
+  'No repair matches that search.': 'Aucune réparation ne correspond à cette recherche.',
   'Take over': 'Prendre en charge',
   'Add photos of this session': 'Ajouter des photos de cette séance',
 

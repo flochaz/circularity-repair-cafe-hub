@@ -16,8 +16,8 @@
   import PatBadge from '$lib/components/PatBadge.svelte';
   import CardNumber from '$lib/components/CardNumber.svelte';
   import { WAIT_TONE_CLASS, firstName, minutesBetween, sessionTimes, statusLabel, waitTone, formatAgo, formatDuration } from '$lib/staff/queue';
-  import { CalendarClock, Camera, CheckCircle2, ChevronRight, Clock, Euro, RefreshCw, UserPlus, Wrench, X } from 'lucide-svelte';
-  import { currentLocale, t, tNow } from '$lib/i18n';
+  import { CalendarClock, Camera, CheckCircle2, ChevronRight, Clock, Euro, RefreshCw, Search, UserPlus, Wrench, X } from 'lucide-svelte';
+  import { currentLocale, t, tNow, translate } from '$lib/i18n';
 
   interface Job {
     id: string;
@@ -61,6 +61,8 @@
   let mySkills: string[] = [];
   let onlyMine = false;
   let tab: Tab = 'waiting';
+  /** Free-text search across the whole session, not just the selected tab. */
+  let search = '';
   let busyId: string | null = null;
   let confirmTakeOver: string | null = null;
   let actionError = '';
@@ -139,6 +141,31 @@
   ];
   $: shown =
     tab === 'waiting' ? waitingShown : tab === 'in_progress' ? beingRepaired : tab === 'awaiting_return' ? paused : finished;
+
+  /** Lowercase and strip accents, so "electronique" finds "Électronique". */
+  function fold(value: string): string {
+    return value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+  }
+
+  $: query = fold(search.trim());
+  $: searching = query.length > 0;
+  $: searchResults = searching
+    ? oldestFirst.filter((j) => {
+        const category = j.category ?? '';
+        const categoryWords = category ? `${category} ${translate('fr', category)}` : '';
+        const cardWords =
+          j.cardNumber == null
+            ? ''
+            : [
+                translate('en', 'Card {n}', { n: j.cardNumber }),
+                translate('fr', 'Card {n}', { n: j.cardNumber }),
+                String(j.cardNumber),
+              ].join(' ');
+        return fold(
+          [j.itemDescription, j.itemBrand ?? '', categoryWords, j.customerName ?? '', j.jobNumber, cardWords].join(' '),
+        ).includes(query);
+      })
+    : [];
 
   async function start(job: Job) {
     busyId = job.id;
@@ -280,6 +307,57 @@
 
   <!-- ── The queue ────────────────────────────────────────────────── -->
   <section class="mt-6">
+    <div class="relative max-w-md">
+      <label class="sr-only" for="queue-search">{$t('Search the queue')}</label>
+      <Search size={16} class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+      <input
+        id="queue-search"
+        class="input pl-9 pr-9"
+        type="search"
+        placeholder={$t('Search by card, name or object type')}
+        bind:value={search}
+        on:keydown={(e) => { if (e.key === 'Escape') search = ''; }}
+      />
+      {#if search}
+        <button
+          type="button"
+          class="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded-md text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+          aria-label={$t('Clear search')}
+          on:click={() => (search = '')}
+        ><X size={16} /></button>
+      {/if}
+    </div>
+
+    {#if searching}
+      <div class="mt-4 flex items-center justify-between gap-2">
+        <h2 class="text-lg font-semibold">{$t('Search results')} <span class="text-sm font-normal text-slate-400">({searchResults.length})</span></h2>
+        <button type="button" class="btn-ghost btn-sm" on:click={() => (search = '')}>{$t('Clear')}</button>
+      </div>
+      {#if searchResults.length === 0}
+        <div class="card mt-3 p-6 text-center text-slate-500">{$t('No repair matches that search.')}</div>
+      {:else}
+        <ol class="mt-3 grid lg:grid-cols-2 gap-3">
+          {#each searchResults as j (j.id)}
+            <li class="card p-4 flex gap-3 items-start">
+              <div class="min-w-0 flex-1">
+                <div class="flex items-start justify-between gap-2">
+                  <a href={`/repairer/job/${j.id}`} class="font-semibold text-slate-900 hover:underline leading-snug">{j.itemDescription}</a>
+                  <span class="badge badge-{j.status} shrink-0">{statusLabel(j.status)}</span>
+                </div>
+                <p class="mt-0.5 text-xs text-slate-500 flex flex-wrap items-center gap-x-2 gap-y-1">
+                  <span class="font-mono">{j.jobNumber}</span>
+                  <CardNumber number={j.cardNumber} />
+                  {#if j.category}<span class="rounded px-1.5 py-0.5 font-medium" style="background-color: {j.categoryColour}22; color: {j.categoryColour}">{$t(j.category)}</span>{/if}
+                  {#if j.customerName}<span>· {firstName(j.customerName)}</span>{/if}
+                </p>
+                <p class="mt-1 text-sm text-slate-700 line-clamp-2">{j.faultDescription}</p>
+              </div>
+              <a href={`/repairer/job/${j.id}`} class="btn-secondary btn-sm shrink-0">{$t('View')}</a>
+            </li>
+          {/each}
+        </ol>
+      {/if}
+    {:else}
     <div class="flex flex-wrap items-center justify-between gap-3">
       <div class="flex gap-1 rounded-xl bg-slate-200/70 p-1 overflow-x-auto max-w-full" role="tablist">
         {#each tabs as tabItem}
@@ -367,6 +445,7 @@
           </li>
         {/each}
       </ol>
+    {/if}
     {/if}
   </section>
 
