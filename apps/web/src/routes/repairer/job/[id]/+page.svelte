@@ -25,7 +25,7 @@
   import CardNumber from '$lib/components/CardNumber.svelte';
   import { clockTime, firstName, minutesBetween, statusLabel, formatDuration } from '$lib/staff/queue';
   import { PAT_RESULTS, type PatResult } from '@circularity/shared';
-  import { ArrowLeft, Camera as CameraIcon, CheckCircle2, ChevronDown, NotebookPen, Package, Pencil, User, XCircle, Zap } from 'lucide-svelte';
+  import { ArrowLeft, Camera as CameraIcon, CheckCircle2, ChevronDown, NotebookPen, Package, Pencil, User, UserX, XCircle, Zap } from 'lucide-svelte';
   import { t, tNow } from '$lib/i18n';
 
   $: id = $page.params.id;
@@ -51,7 +51,7 @@
     preRegistration: { researchNotes: string | null; repairerName: string | null; createdAt: string } | null;
   }
 
-  type Outcome = 'completed' | 'cannot_repair' | 'awaiting_return';
+  type Outcome = 'completed' | 'cannot_repair' | 'awaiting_return' | 'abandoned';
 
   let detail: JobDetail | null = null;
   let loadError = '';
@@ -113,7 +113,7 @@
   $: myId = $auth?.user.id ?? null;
   $: status = detail?.job.status as string | undefined;
   $: isMine = !!detail && detail.job.repairerId === myId && status === 'in_progress';
-  $: isFinished = status === 'completed' || status === 'cannot_repair' || status === 'returned';
+  $: isFinished = status === 'completed' || status === 'cannot_repair' || status === 'returned' || status === 'abandoned';
   $: pat = detail?.pat ?? null;
   $: patNeeded = pat?.needed === true;
   // The result that will count: one chosen now, or one recorded earlier.
@@ -327,6 +327,21 @@
     }
   }
 
+  /** The visitor gave up and left. Works while waiting or paused too. */
+  async function abandon() {
+    if (!confirm(tNow('Mark this repair as left / given up?'))) return;
+    busy = true;
+    error = '';
+    try {
+      await api(`/api/repairer/jobs/${id}/complete`, { method: 'PATCH', json: { outcome: 'abandoned' } });
+      goto(`/repairer?done=${encodeURIComponent(detail?.job.jobNumber ?? '')}&outcome=abandoned`);
+    } catch (err: any) {
+      error = err?.message ?? tNow('Could not save this repair');
+    } finally {
+      busy = false;
+    }
+  }
+
   // Say whether this one item is electrical, whatever its category says.
   async function setElectrical(value: boolean) {
     error = '';
@@ -425,12 +440,14 @@
     { value: 'completed', label: 'Fixed', hint: 'It works again', icon: CheckCircle2, tone: 'emerald' },
     { value: 'cannot_repair', label: 'Could not fix', hint: 'Say why in the notes', icon: XCircle, tone: 'rose' },
     { value: 'awaiting_return', label: 'Coming back', hint: 'They will bring a part', icon: Package, tone: 'violet' },
+    { value: 'abandoned', label: 'Left / gave up', hint: 'They left before it was finished', icon: UserX, tone: 'slate' },
   ];
 
   const TONE: Record<string, string> = {
     emerald: 'ring-emerald-500 bg-emerald-50 text-emerald-900',
     rose: 'ring-rose-500 bg-rose-50 text-rose-900',
     violet: 'ring-violet-500 bg-violet-50 text-violet-900',
+    slate: 'ring-slate-500 bg-slate-100 text-slate-900',
   };
 </script>
 
@@ -647,6 +664,7 @@
           <h2 class="font-semibold">{$t('Waiting for a repairer')}</h2>
           <p class="mt-1 text-sm text-slate-600">{$t('Start it and it is yours. Nobody else will pick it up.')}</p>
           <button class="btn-primary w-full mt-4" disabled={busy} on:click={claim}>{busy ? $t('Starting…') : $t('Start this repair')}</button>
+          <button type="button" class="mt-2 w-full text-sm text-slate-500 hover:text-slate-800 underline underline-offset-2" disabled={busy} on:click={abandon}>{$t('Visitor left / gave up')}</button>
         </section>
       {:else if status === 'awaiting_return'}
         <section class="card p-5">
@@ -654,6 +672,7 @@
           {#if detail.job.outcomeNotes}<p class="mt-2 text-sm text-slate-700 whitespace-pre-line">{detail.job.outcomeNotes}</p>{/if}
           <p class="mt-2 text-sm text-slate-600">{$t('When the visitor is back, carry on with the repair here.')}</p>
           <button class="btn-primary w-full mt-4" disabled={busy} on:click={claim}>{busy ? $t('Starting…') : $t('They are back: carry on')}</button>
+          <button type="button" class="mt-2 w-full text-sm text-slate-500 hover:text-slate-800 underline underline-offset-2" disabled={busy} on:click={abandon}>{$t('Visitor left / gave up')}</button>
         </section>
       {:else if status === 'in_progress'}
         <section class="card p-5 space-y-4">
@@ -661,7 +680,7 @@
           {#if !isMine}
             <p class="text-sm text-slate-600 bg-slate-50 rounded-lg px-3 py-2">{$t('The repair stays credited to {name}. Assign it to yourself above if you are taking it over.', { name: firstName(detail.repairer?.displayName) || $t('the repairer') })}</p>
           {/if}
-          <div class="grid grid-cols-3 gap-2" role="radiogroup" aria-label={$t('Outcome')}>
+          <div class="grid grid-cols-2 gap-2" role="radiogroup" aria-label={$t('Outcome')}>
             {#each OUTCOMES as o}
               <button
                 type="button"

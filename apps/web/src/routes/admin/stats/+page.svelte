@@ -12,6 +12,7 @@
     completedCount: number;
     cannotRepairCount: number;
     returnedCount: number;
+    abandonedCount: number;
     successRate: number;
     repairerCount: number;
     avgDurationMin: number;
@@ -193,7 +194,7 @@
       <div class="flex items-center gap-2 text-slate-500 text-xs"><Wrench size={14} /> Items in</div>
       <p class="text-2xl font-bold mt-1">{overview.repairCount}</p>
       <p class="text-xs text-slate-400 mt-0.5">
-        {overview.completedCount} fixed
+        {overview.completedCount} fixed{#if overview.abandonedCount} · {overview.abandonedCount} left{/if}
       </p>
     </div>
     <div class="card p-4">

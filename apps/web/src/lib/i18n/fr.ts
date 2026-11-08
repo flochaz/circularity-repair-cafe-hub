@@ -322,6 +322,12 @@ export const fr: Record<string, string> = {
   'Take it over if they have had to stop, or have handed it to you.':
     'Prenez-la en charge s’il a dû s’arrêter, ou s’il vous l’a confiée.',
   'Take over this repair': 'Prendre cette réparation en charge',
+  'Left / gave up': 'Parti / abandonné',
+  'They left before it was finished': 'Il est parti avant la fin',
+  'Visitor left / gave up': 'Le visiteur est parti',
+  'Mark this repair as left / given up?': 'Marquer cette réparation comme abandonnée par le visiteur ?',
+  'Repair closed': 'Réparation clôturée',
+  'closed because the visitor left.': 'clôturée car le visiteur est parti.',
   'Nobody yet': 'Personne pour l’instant',
   Assign: 'Attribuer',
   'Assign the volunteer doing this repair. They do not need to be signed in.':

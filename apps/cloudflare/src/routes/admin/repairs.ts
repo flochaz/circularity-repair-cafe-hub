@@ -243,12 +243,12 @@ export async function adminRepairsRoutes(app: App): Promise<void> {
       update.donationAmount = data.donationAmount === null ? null : data.donationAmount.toFixed(2);
     }
     // Stamp completed_at only when the job actually *transitions* into a terminal
-    // state (completed / cannot_repair). Re-saving an already-terminal job (e.g.
-    // to tweak notes) must NOT push completed_at forward — that inflated the
+    // state (completed / cannot_repair / abandoned). Re-saving an already-terminal
+    // job (e.g. to tweak notes) must NOT push completed_at forward — that inflated the
     // reported repair durations. Reopening to a non-terminal state clears it.
     if (data.status !== undefined) {
-      const wasTerminal = existing.status === 'completed' || existing.status === 'cannot_repair';
-      const nowTerminal = data.status === 'completed' || data.status === 'cannot_repair';
+      const wasTerminal = existing.status === 'completed' || existing.status === 'cannot_repair' || existing.status === 'abandoned';
+      const nowTerminal = data.status === 'completed' || data.status === 'cannot_repair' || data.status === 'abandoned';
       if (nowTerminal && !wasTerminal) update.completedAt = new Date();
       else if (!nowTerminal && wasTerminal) update.completedAt = null;
     }
@@ -346,6 +346,7 @@ export async function adminRepairsRoutes(app: App): Promise<void> {
       awaiting_return: '2',
       cannot_repair: '3',
       returned: '0',
+      abandoned: '0',
     };
 
     const rows = await db
@@ -362,7 +363,7 @@ export async function adminRepairsRoutes(app: App): Promise<void> {
       .innerJoin(events, eq(events.id, repairJobs.eventId))
       .leftJoin(skillCategories, eq(skillCategories.id, repairJobs.itemCategoryId))
       .leftJoin(co2Factors, eq(co2Factors.id, repairJobs.co2FactorId))
-      .where(inArray(repairJobs.status, ['completed', 'cannot_repair', 'awaiting_return', 'returned']))
+      .where(inArray(repairJobs.status, ['completed', 'cannot_repair', 'awaiting_return', 'returned', 'abandoned']))
       .orderBy(asc(events.date), asc(repairJobs.createdAt));
 
     const headers = [

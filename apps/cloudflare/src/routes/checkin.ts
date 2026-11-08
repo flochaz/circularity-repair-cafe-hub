@@ -505,7 +505,8 @@ export async function checkInRoutes(app: App): Promise<void> {
             r.job.status === 'completed' ||
             r.job.status === 'cannot_repair' ||
             r.job.status === 'awaiting_return' ||
-            r.job.status === 'returned'
+            r.job.status === 'returned' ||
+            r.job.status === 'abandoned'
               ? r.job.outcomeNotes
               : null,
           category: r.category?.name ? r.category : null,

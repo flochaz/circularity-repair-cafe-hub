@@ -129,7 +129,7 @@
   $: beingRepaired = oldestFirst.filter((j) => j.status === 'in_progress');
   $: paused = oldestFirst.filter((j) => j.status === 'awaiting_return');
   $: finished = [...jobs]
-    .filter((j) => j.status === 'completed' || j.status === 'cannot_repair' || j.status === 'returned')
+    .filter((j) => j.status === 'completed' || j.status === 'cannot_repair' || j.status === 'returned' || j.status === 'abandoned')
     .sort((a, b) => new Date(b.completedAt ?? b.createdAt).getTime() - new Date(a.completedAt ?? a.createdAt).getTime());
   $: fixedCount = jobs.filter((j) => j.status === 'completed').length;
 
@@ -203,6 +203,7 @@
     completed: 'marked as fixed. Nice work.',
     cannot_repair: 'marked as could not fix. Thanks for trying.',
     awaiting_return: 'paused until the visitor comes back with a part.',
+    abandoned: 'closed because the visitor left.',
   };
 </script>
 

@@ -9,7 +9,7 @@
 import { isBenchTime } from '@circularity/shared';
 import { tNow } from '$lib/i18n';
 
-export type RepairStatus = 'waiting' | 'in_progress' | 'completed' | 'cannot_repair' | 'awaiting_return' | 'returned';
+export type RepairStatus = 'waiting' | 'in_progress' | 'completed' | 'cannot_repair' | 'awaiting_return' | 'returned' | 'abandoned';
 
 /** Plain words for each status, as visitors and volunteers would say them.
  *  These are the English source strings; statusLabel() translates them. */
@@ -20,6 +20,7 @@ export const STATUS_LABEL: Record<RepairStatus, string> = {
   cannot_repair: 'Could not fix',
   awaiting_return: 'Coming back with a part',
   returned: 'Collected',
+  abandoned: 'Left / gave up',
 };
 
 export function statusLabel(status: string): string {

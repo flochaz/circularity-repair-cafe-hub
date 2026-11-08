@@ -6,9 +6,9 @@
   import CardNumber from '$lib/components/CardNumber.svelte';
   import Icon from '@iconify/svelte';
   import { categoryIcon } from '$lib/categoryIcon';
-  import { ArrowLeft, Wrench, CheckCircle2, XCircle, PackageX, Hourglass, Clock, Users, Scale, Laptop, Euro } from 'lucide-svelte';
+  import { ArrowLeft, Wrench, CheckCircle2, XCircle, PackageX, Hourglass, Clock, Users, Scale, Laptop, Euro, UserX } from 'lucide-svelte';
 
-  type Status = 'waiting' | 'in_progress' | 'completed' | 'cannot_repair' | 'awaiting_return' | 'returned';
+  type Status = 'waiting' | 'in_progress' | 'completed' | 'cannot_repair' | 'awaiting_return' | 'returned' | 'abandoned';
 
   interface Detail {
     event: {
@@ -26,6 +26,7 @@
       completedCount: number;
       cannotRepairCount: number;
       returnedCount: number;
+      abandonedCount: number;
       openCount: number;
       successRate: number;
       avgDurationMin: number;
@@ -92,6 +93,7 @@
       case 'cannot_repair': return "Couldn't fix";
       case 'awaiting_return': return 'Awaiting return';
       case 'returned': return 'Returned';
+      case 'abandoned': return 'Left / gave up';
     }
   }
 </script>
@@ -133,6 +135,10 @@
     <div class="card p-4">
       <div class="flex items-center gap-2 text-slate-500 text-xs"><XCircle size={14} /> Couldn't fix</div>
       <p class="text-2xl font-bold mt-1">{detail.totals.cannotRepairCount}</p>
+    </div>
+    <div class="card p-4">
+      <div class="flex items-center gap-2 text-slate-500 text-xs"><UserX size={14} /> Left / gave up</div>
+      <p class="text-2xl font-bold mt-1">{detail.totals.abandonedCount}</p>
     </div>
     <div class="card p-4">
       <div class="flex items-center gap-2 text-slate-500 text-xs"><Users size={14} /> Volunteers</div>
@@ -286,6 +292,7 @@
                     {#if j.status === 'completed'}<CheckCircle2 size={11} />{/if}
                     {#if j.status === 'cannot_repair'}<XCircle size={11} />{/if}
                     {#if j.status === 'returned'}<PackageX size={11} />{/if}
+                    {#if j.status === 'abandoned'}<UserX size={11} />{/if}
                     {statusLabel(j.status)}
                   </span>
                 </td>

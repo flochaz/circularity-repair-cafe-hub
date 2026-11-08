@@ -180,6 +180,7 @@
   /* Paused: the visitor is coming back with a part at a later session. */
   .badge-awaiting_return { @apply bg-violet-100 text-violet-800; }
   .badge-returned { @apply bg-slate-100 text-slate-800; }
+  .badge-abandoned { @apply bg-slate-200 text-slate-800; }
   .badge-scheduled { @apply bg-slate-100 text-slate-800; }
   .badge-active { @apply bg-brand-100 text-brand-800; }
   .badge-cancelled { @apply bg-rose-100 text-rose-800; }
@@ -191,6 +192,7 @@
   .status-dot-completed { @apply bg-emerald-500; }
   .status-dot-cannot_repair { @apply bg-rose-500; }
   .status-dot-awaiting_return { @apply bg-violet-500; }
+  .status-dot-abandoned { @apply bg-slate-500; }
 }
 
 @media print {

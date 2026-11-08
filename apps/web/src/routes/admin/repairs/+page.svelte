@@ -141,6 +141,8 @@
     <option value="completed">Completed</option>
     <option value="cannot_repair">Cannot repair</option>
     <option value="awaiting_return">Awaiting return</option>
+    <option value="returned">Returned</option>
+    <option value="abandoned">Left / gave up</option>
   </select>
   <input class="input" type="date" bind:value={filters.from} />
   <input class="input" type="date" bind:value={filters.to} />

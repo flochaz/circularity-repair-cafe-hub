@@ -30,6 +30,7 @@ export function describeActivity(a: any): { who: string | null; rest: string } {
     case 'repair.completed': return { who, rest: `fixed ${item}` };
     case 'repair.cannot_repair': return { who, rest: `could not fix ${item}` };
     case 'repair.awaiting_return': return { who, rest: `paused ${item} until the visitor brings a part` };
+    case 'repair.abandoned': return { who, rest: `closed ${item} because the visitor left` };
     case 'display.link_replaced': return { who, rest: 'replaced the waiting-room screen link' };
     case 'repair.admin_updated': return { who, rest: `updated ${item}` };
     case 'repair.edited': return { who, rest: `edited ${item}` };

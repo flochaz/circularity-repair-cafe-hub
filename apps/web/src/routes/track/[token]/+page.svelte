@@ -10,7 +10,7 @@
   import CardNumber from '$lib/components/CardNumber.svelte';
   import { t, tNow } from '$lib/i18n';
 
-  type Status = 'waiting' | 'in_progress' | 'completed' | 'cannot_repair' | 'awaiting_return' | 'returned';
+  type Status = 'waiting' | 'in_progress' | 'completed' | 'cannot_repair' | 'awaiting_return' | 'returned' | 'abandoned';
 
   interface TrackJob {
     id: string;
@@ -111,6 +111,7 @@
       case 'cannot_repair': return tNow("Couldn't be fixed");
       case 'awaiting_return': return tNow('Waiting for your next visit');
       case 'returned': return tNow('Returned to you');
+      case 'abandoned': return tNow('Repair closed');
     }
   }
 
@@ -268,7 +269,7 @@
       <!-- Job list -->
       <div class="mt-3 space-y-3">
         {#each data.jobs as job (job.id)}
-          {@const isDone = job.status === 'completed' || job.status === 'cannot_repair' || job.status === 'returned'}
+          {@const isDone = job.status === 'completed' || job.status === 'cannot_repair' || job.status === 'returned' || job.status === 'abandoned'}
           <div class="card p-5">
             <div class="flex items-start gap-3">
               {#if job.photoUrl}
@@ -298,6 +299,7 @@
                     {#if job.status === 'completed'}<CheckCircle2 size={12} />{/if}
                     {#if job.status === 'cannot_repair'}<XCircle size={12} />{/if}
                     {#if job.status === 'returned'}<PackageX size={12} />{/if}
+                    {#if job.status === 'abandoned'}<XCircle size={12} />{/if}
                     {statusLabel(job.status)}
                   </span>
                 </div>

@@ -37,7 +37,7 @@ const DURATION_MIN_BARE = sql.raw('((completed_at - accepted_at) / 60000.0)');
 // into hundreds of hours. The live board uses the same limit.
 const TIMED_WHERE = (p: string) =>
   `${p}accepted_at IS NOT NULL AND ${p}completed_at IS NOT NULL AND ${p}completed_at > ${p}accepted_at ` +
-  `AND ${p}completed_at - ${p}accepted_at < ${MAX_REPAIR_MINUTES * 60_000}`;
+  `AND ${p}status <> 'abandoned' AND ${p}completed_at - ${p}accepted_at < ${MAX_REPAIR_MINUTES * 60_000}`;
 const TIMED = sql.raw(TIMED_WHERE('rj.'));
 const TIMED_BARE = sql.raw(TIMED_WHERE(''));
 
@@ -57,6 +57,7 @@ export async function adminStatsRoutes(app: App): Promise<void> {
         COUNT(rj.id) FILTER (WHERE rj.status = 'completed') AS completed,
         COUNT(rj.id) FILTER (WHERE rj.status = 'cannot_repair') AS cannot_repair,
         COUNT(rj.id) FILTER (WHERE rj.status = 'returned') AS returned,
+        COUNT(rj.id) FILTER (WHERE rj.status = 'abandoned') AS abandoned,
         COUNT(DISTINCT rj.repairer_id) FILTER (WHERE rj.repairer_id IS NOT NULL) AS repairer_count,
         COALESCE(SUM(rj.co2_saving_kg) FILTER (WHERE rj.status = 'completed'), 0) AS savings_kg,
         COALESCE(SUM(rj.weight_kg) FILTER (WHERE rj.status = 'completed'), 0) AS fixed_weight_kg,
@@ -83,6 +84,7 @@ export async function adminStatsRoutes(app: App): Promise<void> {
       completedCount: completed,
       cannotRepairCount: Number(r.cannot_repair ?? 0),
       returnedCount: Number(r.returned ?? 0),
+      abandonedCount: Number(r.abandoned ?? 0),
       successRate: closed > 0 ? Math.round((completed / closed) * 100) : 0,
       repairerCount: Number(r.repairer_count ?? 0),
       avgDurationMin: Math.round(Number(r.avg_duration_min ?? 0)),
@@ -197,6 +199,7 @@ export async function adminStatsRoutes(app: App): Promise<void> {
         COUNT(*) FILTER (WHERE status = 'completed') AS completed,
         COUNT(*) FILTER (WHERE status = 'cannot_repair') AS cannot_repair,
         COUNT(*) FILTER (WHERE status = 'returned') AS returned,
+        COUNT(*) FILTER (WHERE status = 'abandoned') AS abandoned,
         COUNT(*) FILTER (WHERE status IN ('waiting','in_progress')) AS open_count,
         COALESCE(SUM(co2_saving_kg) FILTER (WHERE status = 'completed'), 0) AS savings_kg,
         COALESCE(SUM(weight_kg) FILTER (WHERE status = 'completed'), 0) AS saved_weight_kg,
@@ -288,6 +291,7 @@ export async function adminStatsRoutes(app: App): Promise<void> {
         completedCount: completed,
         cannotRepairCount: Number(t.cannot_repair ?? 0),
         returnedCount: Number(t.returned ?? 0),
+        abandonedCount: Number(t.abandoned ?? 0),
         openCount: Number(t.open_count ?? 0),
         successRate: closed > 0 ? Math.round((completed / closed) * 100) : 0,
         avgDurationMin: Math.round(Number(t.avg_duration_min ?? 0)),

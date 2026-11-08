@@ -207,6 +207,7 @@ export async function repairerRoutes(app: App): Promise<void> {
       completed: jobs.filter((j) => j.status === 'completed').length,
       cannot_repair: jobs.filter((j) => j.status === 'cannot_repair').length,
       awaiting_return: jobs.filter((j) => j.status === 'awaiting_return').length,
+      abandoned: jobs.filter((j) => j.status === 'abandoned').length,
     };
     const donationsTotal =
       Math.round(jobs.reduce((sum, j) => sum + (j.donationAmount == null ? 0 : Number(j.donationAmount)), 0) * 100) / 100;
@@ -625,7 +626,7 @@ export async function repairerRoutes(app: App): Promise<void> {
       reply.code(404).send({ error: 'Job not found', code: 'job/not_found' });
       return;
     }
-    if (existing.status === 'completed' || existing.status === 'cannot_repair') {
+    if (['completed', 'cannot_repair', 'returned', 'abandoned'].includes(existing.status)) {
       reply.code(409).send({ error: 'Job is already finished', code: 'job/already_finished' });
       return;
     }
@@ -669,7 +670,7 @@ export async function repairerRoutes(app: App): Promise<void> {
       reply.code(404).send({ error: 'Job not found', code: 'job/not_found' });
       return;
     }
-    if (['completed', 'cannot_repair', 'returned'].includes(existing.status)) {
+    if (['completed', 'cannot_repair', 'returned', 'abandoned'].includes(existing.status)) {
       reply.code(409).send({ error: 'Job is already finished', code: 'job/already_finished' });
       return;
     }
@@ -764,7 +765,7 @@ export async function repairerRoutes(app: App): Promise<void> {
   app.patch('/api/repairer/jobs/:id/complete', async (request, reply) => {
     const { id } = request.params as { id: string };
     const body = request.body as {
-      outcome: 'completed' | 'cannot_repair' | 'awaiting_return';
+      outcome: 'completed' | 'cannot_repair' | 'awaiting_return' | 'abandoned';
       outcomeNotes?: string;
       partsUsed?: string;
       environmentalSavingKg?: number | null;
@@ -774,7 +775,7 @@ export async function repairerRoutes(app: App): Promise<void> {
       pat?: { result?: unknown; notes?: unknown } | null;
     };
     const me = request.auth!;
-    if (!['completed', 'cannot_repair', 'awaiting_return'].includes(body?.outcome)) {
+    if (!['completed', 'cannot_repair', 'awaiting_return', 'abandoned'].includes(body?.outcome)) {
       reply.code(400).send({ error: 'Outcome required', code: 'validation/failed' });
       return;
     }
@@ -877,8 +878,8 @@ export async function repairerRoutes(app: App): Promise<void> {
 
     // Count a repair once, when it is first finished. Saving a finished repair
     // again, to correct a note, must not add to the repairer's total.
-    const wasFinished = existing.status === 'completed' || existing.status === 'cannot_repair';
-    if (existing.repairerId && !isPaused && !wasFinished) {
+    const wasFinished = existing.status === 'completed' || existing.status === 'cannot_repair' || existing.status === 'abandoned';
+    if (existing.repairerId && !isPaused && body.outcome !== 'abandoned' && !wasFinished) {
       await db.run(
         sql`UPDATE users SET repair_count_cache = repair_count_cache + 1 WHERE id = ${existing.repairerId}`
       );

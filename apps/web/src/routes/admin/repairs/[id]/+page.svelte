@@ -320,6 +320,8 @@
         <option value="completed">Completed</option>
         <option value="cannot_repair">Cannot repair</option>
         <option value="awaiting_return">Awaiting return</option>
+        <option value="returned">Returned</option>
+        <option value="abandoned">Left / gave up</option>
       </select>
     </div>
     {#if $cafe?.askSatisfactionEnabled || form.satisfaction !== '' || form.satisfactionComment !== ''}

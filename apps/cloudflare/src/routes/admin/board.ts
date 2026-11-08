@@ -73,7 +73,8 @@ export async function adminBoardRoutes(app: App): Promise<void> {
             inList(repairJobs.eventId, ids),
             sql`(
               ${repairJobs.status} IN ('waiting','in_progress')
-              OR (${repairJobs.completedAt} IS NOT NULL
+              OR (${repairJobs.status} IN ('completed','cannot_repair')
+                  AND ${repairJobs.completedAt} IS NOT NULL
                   AND ${repairJobs.completedAt} >= ${Date.now() - 45 * 60 * 1000}
                   AND (${repairJobs.cardNumber} IS NULL OR ${repairJobs.cardReturnedAt} IS NULL))
             )`,

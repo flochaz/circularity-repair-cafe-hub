@@ -30,6 +30,7 @@ export async function adminDashboardRoutes(app: App): Promise<void> {
         completed: jobs.filter((j) => j.status === 'completed').length,
         cannot_repair: jobs.filter((j) => j.status === 'cannot_repair').length,
         awaiting_return: jobs.filter((j) => j.status === 'awaiting_return').length,
+        abandoned: jobs.filter((j) => j.status === 'abandoned').length,
       };
       activeEvent = { ...evt, venueName: activeRows[0].venue.name };
     }

@@ -102,6 +102,7 @@ export const REPAIR_STATUSES = [
   'cannot_repair',
   'awaiting_return',
   'returned',
+  'abandoned',
 ] as const;
 /** How the visitor said the repair went, asked at the exit. */
 export const SATISFACTION_VALUES = ['satisfied', 'not_satisfied'] as const;
