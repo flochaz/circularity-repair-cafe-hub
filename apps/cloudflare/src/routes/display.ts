@@ -16,6 +16,7 @@
 // =============================================================================
 import type { App } from '../lib/router.js';
 import { and, asc, eq, or } from 'drizzle-orm';
+import { alias } from 'drizzle-orm/sqlite-core';
 import { isBenchTime } from '@circularity/shared';
 import { db, inList } from '../db/index.js';
 import { localToday } from '../lib/dates.js';
@@ -105,6 +106,7 @@ export async function displayRoutes(app: App): Promise<void> {
       .orderBy(asc(events.date), asc(events.startTime));
     const ids = sessionRows.map((e) => e.id);
 
+    const repairer2 = alias(users, 'repairer2');
     const rows = ids.length
       ? await db
           .select({
@@ -120,10 +122,12 @@ export async function displayRoutes(app: App): Promise<void> {
             category: skillCategories.name,
             categoryColour: skillCategories.colour,
             repairerName: users.displayName,
+            repairer2Name: repairer2.displayName,
           })
           .from(repairJobs)
           .leftJoin(skillCategories, eq(skillCategories.id, repairJobs.itemCategoryId))
           .leftJoin(users, eq(users.id, repairJobs.repairerId))
+          .leftJoin(repairer2, eq(repairer2.id, repairJobs.repairer2Id))
           .where(inList(repairJobs.eventId, ids))
           .orderBy(asc(repairJobs.createdAt))
       : [];
@@ -156,6 +160,7 @@ export async function displayRoutes(app: App): Promise<void> {
         completedAt: r.completedAt,
         // First names only, the same as the visitor's tracking page.
         repairerFirstName: r.repairerName ? r.repairerName.split(' ')[0] : null,
+        repairer2FirstName: r.repairer2Name ? r.repairer2Name.split(' ')[0] : null,
       }));
 
     // How long a repair takes here today, for the waiting time estimate.

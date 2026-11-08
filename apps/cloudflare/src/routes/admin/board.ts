@@ -3,6 +3,7 @@ import { db, inList } from '../../db/index.js';
 import { localToday } from '../../lib/dates.js';
 import { events, repairImages, repairJobs, skillCategories, users } from '../../db/schema.js';
 import { and, asc, desc, eq, sql } from 'drizzle-orm';
+import { alias } from 'drizzle-orm/sqlite-core';
 import { isBenchTime } from '@circularity/shared';
 
 /**
@@ -45,6 +46,7 @@ export async function adminBoardRoutes(app: App): Promise<void> {
     let jobs: any[] = [];
     if (visibleEvents.length > 0) {
       const ids = visibleEvents.map((e) => e.id);
+      const repairer2 = alias(users, 'repairer2');
       const rows = await db
         .select({
           id: repairJobs.id,
@@ -63,11 +65,13 @@ export async function adminBoardRoutes(app: App): Promise<void> {
           category: skillCategories.name,
           categoryColour: skillCategories.colour,
           repairerName: users.displayName,
+          repairer2Name: repairer2.displayName,
         })
         .from(repairJobs)
         .innerJoin(events, eq(events.id, repairJobs.eventId))
         .leftJoin(skillCategories, eq(skillCategories.id, repairJobs.itemCategoryId))
         .leftJoin(users, eq(users.id, repairJobs.repairerId))
+        .leftJoin(repairer2, eq(repairer2.id, repairJobs.repairer2Id))
         .where(
           and(
             inList(repairJobs.eventId, ids),

@@ -89,12 +89,18 @@
   async function assignRow(row: any, userId: string) {
     savingRowId = row.id;
     try {
+      // Changing the first repairer drops a second one that would now clash.
+      const secondId = userId && row.repairer2Id && row.repairer2Id !== userId ? row.repairer2Id : null;
       await api(`/api/admin/repairs/${row.id}`, {
         method: 'PATCH',
-        json: { repairerId: userId || null },
+        json: { repairerId: userId || null, repairer2Id: secondId },
       });
       row.repairerId = userId || null;
       row.repairerName = userId ? (assignable.find((u) => u.id === userId)?.displayName ?? null) : null;
+      if (!secondId) {
+        row.repairer2Id = null;
+        row.repairer2Name = null;
+      }
       data = data; // trigger reactivity
     } catch (e: any) {
       alert(e?.message ?? 'Could not reassign repair');
@@ -185,6 +191,7 @@
                   <option value={u.id}>{u.displayName}</option>
                 {/each}
               </select>
+              {#if r.repairer2Name}<span class="mt-1 block text-xs text-slate-500">with {r.repairer2Name}</span>{/if}
             </td>
             <td class="px-3 py-2"><span class="badge badge-{r.status}">{r.status.replace('_',' ')}</span></td>
           </tr>

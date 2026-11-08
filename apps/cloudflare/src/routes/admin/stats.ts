@@ -58,7 +58,17 @@ export async function adminStatsRoutes(app: App): Promise<void> {
         COUNT(rj.id) FILTER (WHERE rj.status = 'cannot_repair') AS cannot_repair,
         COUNT(rj.id) FILTER (WHERE rj.status = 'returned') AS returned,
         COUNT(rj.id) FILTER (WHERE rj.status = 'abandoned') AS abandoned,
-        COUNT(DISTINCT rj.repairer_id) FILTER (WHERE rj.repairer_id IS NOT NULL) AS repairer_count,
+        (
+          SELECT COUNT(*) FROM (
+            SELECT rj2.repairer_id AS uid
+              FROM repair_jobs rj2 JOIN events e ON e.id = rj2.event_id
+             WHERE e.status IN ('completed','active') ${filter} AND rj2.repairer_id IS NOT NULL
+            UNION
+            SELECT rj2.repairer2_id
+              FROM repair_jobs rj2 JOIN events e ON e.id = rj2.event_id
+             WHERE e.status IN ('completed','active') ${filter} AND rj2.repairer2_id IS NOT NULL
+          )
+        ) AS repairer_count,
         COALESCE(SUM(rj.co2_saving_kg) FILTER (WHERE rj.status = 'completed'), 0) AS savings_kg,
         COALESCE(SUM(rj.weight_kg) FILTER (WHERE rj.status = 'completed'), 0) AS fixed_weight_kg,
         COALESCE(SUM(rj.donation_amount), 0) AS donations,
@@ -144,7 +154,15 @@ export async function adminStatsRoutes(app: App): Promise<void> {
         COUNT(rj.id) AS repair_count,
         COUNT(rj.id) FILTER (WHERE rj.status = 'completed') AS completed,
         COUNT(rj.id) FILTER (WHERE rj.status = 'cannot_repair') AS cannot_repair,
-        COUNT(DISTINCT rj.repairer_id) FILTER (WHERE rj.repairer_id IS NOT NULL) AS repairer_count,
+        (
+          SELECT COUNT(*) FROM (
+            SELECT rj2.repairer_id AS uid FROM repair_jobs rj2
+             WHERE rj2.event_id = e.id AND rj2.repairer_id IS NOT NULL
+            UNION
+            SELECT rj2.repairer2_id FROM repair_jobs rj2
+             WHERE rj2.event_id = e.id AND rj2.repairer2_id IS NOT NULL
+          )
+        ) AS repairer_count,
         COALESCE(AVG(${DURATION_MIN})
                  FILTER (WHERE ${TIMED}), 0) AS avg_duration_min
       FROM events e
@@ -215,6 +233,15 @@ export async function adminStatsRoutes(app: App): Promise<void> {
     const closed = completed + Number(t.cannot_repair ?? 0);
 
     const repairersRows = await execute(sql`
+      WITH rj AS (
+        SELECT id, repairer_id AS user_id, status, accepted_at, completed_at
+        FROM repair_jobs
+        WHERE event_id = ${id} AND repairer_id IS NOT NULL
+        UNION
+        SELECT id, repairer2_id AS user_id, status, accepted_at, completed_at
+        FROM repair_jobs
+        WHERE event_id = ${id} AND repairer2_id IS NOT NULL
+      )
       SELECT
         u.id,
         u.display_name AS display_name,
@@ -222,9 +249,8 @@ export async function adminStatsRoutes(app: App): Promise<void> {
         COUNT(rj.id) FILTER (WHERE rj.status = 'completed') AS completed,
         COALESCE(AVG(${DURATION_MIN})
                  FILTER (WHERE ${TIMED}), 0) AS avg_duration_min
-      FROM repair_jobs rj
-      JOIN users u ON u.id = rj.repairer_id
-      WHERE rj.event_id = ${id}
+      FROM rj
+      JOIN users u ON u.id = rj.user_id
       GROUP BY u.id, u.display_name
       ORDER BY count DESC, u.display_name
     `);
@@ -257,11 +283,13 @@ export async function adminStatsRoutes(app: App): Promise<void> {
         CASE WHEN rj.accepted_at IS NOT NULL AND rj.completed_at IS NOT NULL AND NOT (${TIMED}) THEN 1 ELSE 0 END
           AS finished_later,
         u.display_name AS repairer_name,
+        u2.display_name AS repairer2_name,
         sc.name AS category_name,
         sc.icon AS category_icon,
         sc.colour AS category_colour
       FROM repair_jobs rj
       LEFT JOIN users u ON u.id = rj.repairer_id
+      LEFT JOIN users u2 ON u2.id = rj.repairer2_id
       LEFT JOIN skill_categories sc ON sc.id = rj.item_category_id
       WHERE rj.event_id = ${id}
       ORDER BY rj.created_at
@@ -328,6 +356,7 @@ export async function adminStatsRoutes(app: App): Promise<void> {
         // after the session. It has no repair time.
         finishedLater: Number(r.finished_later) === 1,
         repairerName: r.repairer_name,
+        repairer2Name: r.repairer2_name,
         categoryName: r.category_name,
         categoryIcon: r.category_icon,
         categoryColour: r.category_colour,

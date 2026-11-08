@@ -45,6 +45,8 @@
     completedAt: string | null;
     repairerId: string | null;
     repairerName: string | null;
+    repairer2Id: string | null;
+    repairer2Name: string | null;
     category: string | null;
     categoryColour: string | null;
   }
@@ -376,10 +378,10 @@
                 {#each inProgress as j}
                   <li>
                     <a href={`/admin/repairs/${j.id}`} class="flex items-center gap-3 px-4 py-2.5 hover:bg-slate-50">
-                      <span class="h-8 w-8 rounded-full bg-blue-50 text-blue-700 text-xs font-semibold flex items-center justify-center shrink-0" title={j.repairerName ?? ''}>{(j.repairerName ?? '?').split(/\s+/).map((p) => p[0]).slice(0, 2).join('')}</span>
+                      <span class="h-8 w-8 rounded-full bg-blue-50 text-blue-700 text-xs font-semibold flex items-center justify-center shrink-0" title={[j.repairerName, j.repairer2Name].filter(Boolean).join(' & ')}>{(j.repairerName ?? '?').split(/\s+/).map((p) => p[0]).slice(0, 2).join('')}</span>
                       <span class="min-w-0 flex-1">
                         <span class="block text-sm font-medium truncate">{j.itemDescription}</span>
-                        <span class="block text-xs text-slate-500 truncate">{firstName(j.repairerName) || 'Someone'} · {j.jobNumber} <CardNumber number={j.cardNumber} /></span>
+                        <span class="block text-xs text-slate-500 truncate">{[firstName(j.repairerName), firstName(j.repairer2Name)].filter(Boolean).join(' & ') || 'Someone'} · {j.jobNumber} <CardNumber number={j.cardNumber} /></span>
                       </span>
                       <span class="text-xs text-slate-500 shrink-0">{formatMinutes(minutesBetween(j.acceptedAt ?? j.createdAt, now))}</span>
                     </a>

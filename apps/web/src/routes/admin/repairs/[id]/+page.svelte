@@ -21,8 +21,8 @@
 
   $: myId = $auth?.user.id ?? null;
   $: status = detail?.job?.status as string | undefined;
-  $: isMine = !!detail && detail.job.repairerId === myId && status === 'in_progress';
-  $: canClaim = !!detail && (status === 'waiting' || (status === 'in_progress' && detail.job.repairerId !== myId));
+  $: isMine = !!detail && (detail.job.repairerId === myId || detail.job.repairer2Id === myId) && status === 'in_progress';
+  $: canClaim = !!detail && (status === 'waiting' || (status === 'in_progress' && !isMine));
   // Repairers + admins can be assigned to a job. We exclude inactive accounts
   // so the dropdown stays short and only shows people who can actually work.
   $: assignableUsers = allUsers
@@ -139,13 +139,13 @@
   // as-is so admins can pre-assign a "waiting" job to a volunteer without
   // misreporting it as already in progress. The assignee can then accept it
   // (or the admin can flip the status manually via the form below).
-  async function assignTo(userId: string) {
+  async function assignTo(userId: string, secondId: string | null = detail?.job.repairer2Id ?? null) {
     assigning = true;
     assignError = '';
     try {
       await api(`/api/admin/repairs/${id}`, {
         method: 'PATCH',
-        json: { repairerId: userId || null },
+        json: { repairerId: userId || null, repairer2Id: userId ? secondId || null : null },
       });
       await load();
     } catch (e: any) {
@@ -153,6 +153,16 @@
     } finally {
       assigning = false;
     }
+  }
+
+  /** Changing the first repairer drops a second one that would now clash. */
+  function assignPrimary(userId: string) {
+    const second = detail?.job.repairer2Id && detail.job.repairer2Id !== userId ? detail.job.repairer2Id : null;
+    assignTo(userId, second);
+  }
+
+  function assignSecond(userId: string) {
+    assignTo(detail?.job.repairerId ?? '', userId || null);
   }
 
   // Permanently delete the repair (and its photos). Irreversible, so we confirm
@@ -226,7 +236,7 @@
         class="input flex-1 min-w-[200px]"
         disabled={assigning}
         value={detail.job.repairerId ?? ''}
-        on:change={(e) => assignTo((e.currentTarget as HTMLSelectElement).value)}
+        on:change={(e) => assignPrimary((e.currentTarget as HTMLSelectElement).value)}
       >
         <option value="">Unassigned</option>
         {#each assignableUsers as u}
@@ -236,9 +246,27 @@
         {/each}
       </select>
       {#if detail.job.repairerId}
-        <button class="btn-ghost" disabled={assigning} on:click={() => assignTo('')}>Unassign</button>
+        <button class="btn-ghost" disabled={assigning} on:click={() => assignTo('', null)}>Unassign</button>
       {/if}
       {#if assigning}<span class="text-xs text-slate-500">Saving…</span>{/if}
+    </div>
+    <div class="mt-3">
+      <label class="label" for="assign2">Second repairer <span class="font-normal text-slate-400">(optional)</span></label>
+      <select
+        id="assign2"
+        class="input w-full"
+        disabled={assigning || !detail.job.repairerId}
+        value={detail.job.repairer2Id ?? ''}
+        on:change={(e) => assignSecond((e.currentTarget as HTMLSelectElement).value)}
+      >
+        <option value="">Nobody</option>
+        {#each assignableUsers.filter((u) => u.id !== detail.job.repairerId) as u}
+          <option value={u.id}>
+            {u.displayName}{u.id === myId ? ' (you)' : ''}{u.role !== 'repairer' ? ` · ${u.role.replace('_', ' ')}` : ''}
+          </option>
+        {/each}
+      </select>
+      <p class="text-xs text-slate-500 mt-1">Sometimes two volunteers work on the same item.</p>
     </div>
     {#if assignError}<p class="text-sm text-rose-600 mt-2">{assignError}</p>{/if}
     <p class="text-xs text-slate-500 mt-2">Reassigning doesn't change the status. Use the status field below to mark the repair in progress, completed, etc.</p>

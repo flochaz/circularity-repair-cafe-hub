@@ -56,6 +56,7 @@
       /** Finished, but not within one sitting, so it has no repair time. */
       finishedLater?: boolean;
       repairerName: string | null;
+      repairer2Name: string | null;
       categoryName: string | null;
       categoryIcon: string | null;
       categoryColour: string | null;
@@ -284,7 +285,7 @@
                     <span class="text-slate-400">-</span>
                   {/if}
                 </td>
-                <td class="px-3 py-2 text-slate-600">{j.repairerName ?? '-'}</td>
+                <td class="px-3 py-2 text-slate-600">{[j.repairerName, j.repairer2Name].filter(Boolean).join(' & ') || '-'}</td>
                 <td class="px-3 py-2">
                   <span class="badge badge-{j.status} inline-flex items-center gap-1">
                     {#if j.status === 'waiting'}<Hourglass size={11} />{/if}

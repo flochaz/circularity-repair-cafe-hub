@@ -30,6 +30,8 @@
     status: string;
     repairerId: string | null;
     repairerName: string | null;
+    repairer2Id: string | null;
+    repairer2Name: string | null;
     createdAt: string;
     acceptedAt: string | null;
     completedAt: string | null;
@@ -123,7 +125,7 @@
 
   $: jobs = data?.jobs ?? [];
   $: oldestFirst = [...jobs].sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
-  $: mine = oldestFirst.filter((j) => j.status === 'in_progress' && j.repairerId === myId);
+  $: mine = oldestFirst.filter((j) => j.status === 'in_progress' && onJob(j, myId));
   $: waiting = oldestFirst.filter((j) => j.status === 'waiting');
   $: waitingShown = onlyMine && mySkills.length ? waiting.filter((j) => j.categoryId && mySkills.includes(j.categoryId)) : waiting;
   $: beingRepaired = oldestFirst.filter((j) => j.status === 'in_progress');
@@ -132,6 +134,19 @@
     .filter((j) => j.status === 'completed' || j.status === 'cannot_repair' || j.status === 'returned' || j.status === 'abandoned')
     .sort((a, b) => new Date(b.completedAt ?? b.createdAt).getTime() - new Date(a.completedAt ?? a.createdAt).getTime());
   $: fixedCount = jobs.filter((j) => j.status === 'completed').length;
+
+  /** Whether this person is one of the repairers on the job. */
+  function onJob(j: Job, id: string | null): boolean {
+    return !!id && (j.repairerId === id || j.repairer2Id === id);
+  }
+
+  /** The first names on the job, leaving one person out (usually me). */
+  function repairerNames(j: Job, excludeId: string | null = null): string {
+    return [j.repairerId === excludeId ? null : j.repairerName, j.repairer2Id === excludeId ? null : j.repairer2Name]
+      .filter((n): n is string => Boolean(n))
+      .map((n) => firstName(n))
+      .join(' & ');
+  }
 
   $: tabs = [
     { key: 'waiting' as Tab, label: 'Waiting', count: waiting.length },
@@ -295,6 +310,7 @@
                 <span class="font-mono">{j.jobNumber}</span>
                 <CardNumber number={j.cardNumber} />
                 {#if j.customerName}<span>· {firstName(j.customerName)}</span>{/if}
+                {#if repairerNames(j, myId)}<span>· {$t('with {name}', { name: repairerNames(j, myId) })}</span>{/if}
                 <span>· {$t('started {ago}', { ago: formatAgo(minutesBetween(j.acceptedAt ?? j.createdAt, now)) })}</span>
               </p>
               {#if j.needsPat || j.patResult}<p class="mt-1"><PatBadge needed={j.needsPat} result={j.patResult} /></p>{/if}
@@ -418,8 +434,8 @@
                 <p class="text-sm flex items-center gap-1.5 {tab === 'waiting' ? WAIT_TONE_CLASS[waitTone(waited)] : 'text-slate-500'}">
                   <Clock size={14} />
                   {#if tab === 'waiting'}{$t('Waiting {duration}', { duration: formatDuration(waited) })}
-                  {:else if tab === 'in_progress'}{$t('{who} · {duration}', { who: j.repairerId === myId ? $t('With you') : $t('With {name}', { name: firstName(j.repairerName) || $t('someone') }), duration: formatDuration(minutesBetween(j.acceptedAt ?? j.createdAt, now)) })}
-                  {:else if j.repairerName}{firstName(j.repairerName)}
+                  {:else if tab === 'in_progress'}{$t('{who} · {duration}', { who: onJob(j, myId) ? (repairerNames(j, myId) ? $t('With you & {name}', { name: repairerNames(j, myId) }) : $t('With you')) : $t('With {name}', { name: repairerNames(j) || $t('someone') }), duration: formatDuration(minutesBetween(j.acceptedAt ?? j.createdAt, now)) })}
+                  {:else if repairerNames(j)}{repairerNames(j)}
                   {:else}{$t('Checked in at {time}', { time: new Date(j.createdAt).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) })}{/if}
                 </p>
                 <div class="flex gap-2">
@@ -427,7 +443,7 @@
                     <button class="btn-primary btn-sm" disabled={busyId === j.id} on:click={() => start(j)}>{busyId === j.id ? $t('Starting…') : $t('Start this repair')}</button>
                   {:else if j.status === 'awaiting_return'}
                     <button class="btn-primary btn-sm" disabled={busyId === j.id} on:click={() => start(j)}>{$t('They are back: carry on')}</button>
-                  {:else if j.status === 'in_progress' && j.repairerId === myId}
+                  {:else if j.status === 'in_progress' && onJob(j, myId)}
                     <a href={`/repairer/job/${j.id}`} class="btn-primary btn-sm">{$t('Carry on')}</a>
                   {:else if j.status === 'in_progress'}
                     {#if confirmTakeOver === j.id}

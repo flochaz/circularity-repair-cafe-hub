@@ -101,6 +101,7 @@ export async function adminDashboardRoutes(app: App): Promise<void> {
     // ── What the dashboard needs to run today's session ──────────────
     // Every repair at the active session, oldest first, so the dashboard can
     // show the queue, who is working on what, and anything waiting too long.
+    const repairer2 = alias(users, 'repairer2');
     const activeJobs = activeEvent
       ? await db
           .select({
@@ -115,12 +116,15 @@ export async function adminDashboardRoutes(app: App): Promise<void> {
             completedAt: repairJobs.completedAt,
             repairerId: repairJobs.repairerId,
             repairerName: users.displayName,
+            repairer2Id: repairJobs.repairer2Id,
+            repairer2Name: repairer2.displayName,
             category: skillCategories.name,
             categoryColour: skillCategories.colour,
           })
           .from(repairJobs)
           .leftJoin(skillCategories, eq(skillCategories.id, repairJobs.itemCategoryId))
           .leftJoin(users, eq(users.id, repairJobs.repairerId))
+          .leftJoin(repairer2, eq(repairer2.id, repairJobs.repairer2Id))
           .where(eq(repairJobs.eventId, (activeEvent as { id: string }).id))
           .orderBy(asc(repairJobs.createdAt))
       : [];

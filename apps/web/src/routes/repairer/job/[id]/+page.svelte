@@ -36,6 +36,7 @@
     event: any;
     venue: any;
     repairer: any;
+    repairer2: any;
     images: Array<{ id: string; filePath: string; stage: string; caption: string | null; createdAt: string }>;
     /** Null while the cafe does not do PAT tests. */
     pat: {
@@ -88,6 +89,8 @@
   let volunteers: Array<{ id: string; displayName: string; role: string }> = [];
   /** The person picked in the repairer drop-down. */
   let assignId = '';
+  /** An optional second volunteer on the same item. */
+  let assign2Id = '';
   let assigning = false;
 
   // Correcting the details recorded at registration, whatever the status.
@@ -112,7 +115,16 @@
 
   $: myId = $auth?.user.id ?? null;
   $: status = detail?.job.status as string | undefined;
-  $: isMine = !!detail && detail.job.repairerId === myId && status === 'in_progress';
+  $: isMine = !!detail && (detail.job.repairerId === myId || detail.job.repairer2Id === myId) && status === 'in_progress';
+  // The second place only makes sense next to a first one, and never the same person.
+  $: if (!assignId) assign2Id = '';
+  $: if (assignId && assign2Id === assignId) assign2Id = '';
+  $: repairerNames = detail
+    ? [
+        detail.job.repairerId ? (detail.job.repairerId === myId ? $t('You') : detail.repairer?.displayName) : null,
+        detail.job.repairer2Id ? (detail.job.repairer2Id === myId ? $t('You') : detail.repairer2?.displayName) : null,
+      ].filter(Boolean) as string[]
+    : [];
   $: isFinished = status === 'completed' || status === 'cannot_repair' || status === 'returned' || status === 'abandoned';
   $: pat = detail?.pat ?? null;
   $: patNeeded = pat?.needed === true;
@@ -137,6 +149,7 @@
       if (detail.job.environmentalSavingKg) savings = detail.job.environmentalSavingKg;
       co2FactorId = detail.job.co2FactorId ?? null;
       assignId = detail.job.repairerId ?? '';
+      assign2Id = detail.job.repairer2Id ?? '';
       satisfaction = detail.job.satisfaction ?? '';
       cardReturned = detail.job.cardReturnedAt != null;
       donationInput = detail.job.donationAmount != null ? Number(detail.job.donationAmount).toFixed(2) : '';
@@ -206,7 +219,7 @@
     try {
       await api(`/api/repairer/jobs/${id}/assign`, {
         method: 'PATCH',
-        json: { repairerId: assignId || null },
+        json: { repairerId: assignId || null, repairer2Id: assign2Id || null },
       });
       await load();
     } catch (err: any) {
@@ -503,10 +516,10 @@
             <dt class="text-slate-500">{$t('Checked in')}</dt>
             <dd class="text-slate-900">{clockTime(detail.job.createdAt)} · {$t('waited {duration}', { duration: formatDuration(minutesBetween(detail.job.createdAt, detail.job.acceptedAt ? new Date(detail.job.acceptedAt).getTime() : Date.now())) })}</dd>
           </div>
-          {#if detail.repairer && detail.job.repairerId}
+          {#if repairerNames.length > 0}
             <div>
               <dt class="text-slate-500">{isFinished ? $t('Repaired by') : $t('Repairer')}</dt>
-              <dd class="text-slate-900">{isMine ? $t('You') : detail.repairer.displayName}</dd>
+              <dd class="text-slate-900">{repairerNames.join(' & ')}</dd>
             </div>
           {/if}
         </dl>
@@ -645,17 +658,33 @@
         <section class="card p-5">
           <h2 class="font-semibold">{$t('Repairer')}</h2>
           <p class="mt-1 text-sm text-slate-600">{$t('Assign the volunteer doing this repair. They do not need to be signed in.')}</p>
-          <div class="mt-3 flex gap-2">
-            <select class="input" bind:value={assignId} aria-label={$t('Repairer')}>
-              <option value="">{$t('Nobody yet')}</option>
-              {#each volunteers as v (v.id)}
-                <option value={v.id}>{v.displayName}</option>
-              {/each}
-            </select>
-            <button class="btn-secondary shrink-0" disabled={assigning || assignId === (detail.job.repairerId ?? '')} on:click={assignRepairer}>
-              {assigning ? $t('Saving…') : $t('Assign')}
-            </button>
+          <div class="mt-3 grid sm:grid-cols-2 gap-2">
+            <div>
+              <label class="label" for="assign-primary">{$t('Repairer')}</label>
+              <select id="assign-primary" class="input" bind:value={assignId}>
+                <option value="">{$t('Nobody yet')}</option>
+                {#each volunteers as v (v.id)}
+                  <option value={v.id}>{v.displayName}</option>
+                {/each}
+              </select>
+            </div>
+            <div>
+              <label class="label" for="assign-second">{$t('Second repairer (optional)')}</label>
+              <select id="assign-second" class="input" bind:value={assign2Id} disabled={!assignId}>
+                <option value="">{$t('Nobody')}</option>
+                {#each volunteers.filter((v) => v.id !== assignId) as v (v.id)}
+                  <option value={v.id}>{v.displayName}</option>
+                {/each}
+              </select>
+            </div>
           </div>
+          <button
+            class="btn-secondary w-full mt-3"
+            disabled={assigning || (assignId === (detail.job.repairerId ?? '') && assign2Id === (detail.job.repairer2Id ?? ''))}
+            on:click={assignRepairer}
+          >
+            {assigning ? $t('Saving…') : $t('Assign')}
+          </button>
         </section>
       {/if}
 

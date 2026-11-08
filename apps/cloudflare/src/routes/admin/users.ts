@@ -1,7 +1,7 @@
 import type { App } from '../../lib/router.js';
 import { db, isUniqueViolation } from '../../db/index.js';
 import { repairJobs, users } from '../../db/schema.js';
-import { asc, eq, sql } from 'drizzle-orm';
+import { asc, eq, or, sql } from 'drizzle-orm';
 import { userCreateSchema, userUpdateSchema } from '@circularity/shared';
 import { hashPassword } from '../../utils/password.js';
 import { generateResetLinkForUser } from '../auth.js';
@@ -152,7 +152,10 @@ export async function adminUsersRoutes(app: App): Promise<void> {
     }
     const { id } = request.params as { id: string };
     // Disallow if has repairs
-    const [{ c }] = await db.select({ c: sql<number>`COUNT(*)` }).from(repairJobs).where(eq(repairJobs.repairerId, id));
+    const [{ c }] = await db
+      .select({ c: sql<number>`COUNT(*)` })
+      .from(repairJobs)
+      .where(or(eq(repairJobs.repairerId, id), eq(repairJobs.repairer2Id, id)));
     if (Number(c) > 0) {
       reply.code(409).send({ error: 'User has repair history; deactivate instead', code: 'user/has_history' });
       return;

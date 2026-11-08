@@ -467,6 +467,8 @@ export const repairJobs = sqliteTable(
     faultDescription: text('fault_description').notNull(),
     status: text('status', { enum: REPAIR_STATUSES }).notNull().default('waiting'),
     repairerId: uuid('repairer_id').references(() => users.id),
+    /** An optional second volunteer on the same item. Never set without a primary. */
+    repairer2Id: uuid('repairer2_id').references(() => users.id),
     acceptedAt: timestamp('accepted_at'),
     completedAt: timestamp('completed_at'),
     outcomeNotes: text('outcome_notes'),
@@ -499,6 +501,7 @@ export const repairJobs = sqliteTable(
     index('idx_repair_jobs_event_id').on(t.eventId),
     index('idx_repair_jobs_status').on(t.status),
     index('idx_repair_jobs_repairer_id').on(t.repairerId),
+    index('idx_repair_jobs_repairer2_id').on(t.repairer2Id),
     index('idx_repair_jobs_created_at').on(t.createdAt),
     index('idx_repair_jobs_customer_token').on(t.customerToken),
   ],

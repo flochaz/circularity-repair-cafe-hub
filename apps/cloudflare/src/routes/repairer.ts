@@ -1,7 +1,8 @@
 import type { App, HubReply, HubRequest } from '../lib/router.js';
 import { db } from '../db/index.js';
 import { cafes, events, preRegistrations, repairImages, repairJobs, skillCategories, users, venues } from '../db/schema.js';
-import { and, asc, count, desc, eq, sql } from 'drizzle-orm';
+import { and, asc, count, desc, eq, or, sql } from 'drizzle-orm';
+import { alias } from 'drizzle-orm/sqlite-core';
 import {
   MAX_CO2_SAVING_KG,
   assistedCheckInSchema,
@@ -161,6 +162,7 @@ export async function repairerRoutes(app: App): Promise<void> {
       return { event: null, jobs: [], counts: null, myJobs: [], donationsTotal: 0 };
     }
     const evt = rows[0].event;
+    const repairer2 = alias(users, 'repairer2');
     const jobRows = await db
       .select({
         id: repairJobs.id,
@@ -175,6 +177,8 @@ export async function repairerRoutes(app: App): Promise<void> {
         status: repairJobs.status,
         repairerId: repairJobs.repairerId,
         repairerName: users.displayName,
+        repairer2Id: repairJobs.repairer2Id,
+        repairer2Name: repairer2.displayName,
         createdAt: repairJobs.createdAt,
         acceptedAt: repairJobs.acceptedAt,
         completedAt: repairJobs.completedAt,
@@ -189,6 +193,7 @@ export async function repairerRoutes(app: App): Promise<void> {
       .from(repairJobs)
       .leftJoin(skillCategories, eq(skillCategories.id, repairJobs.itemCategoryId))
       .leftJoin(users, eq(users.id, repairJobs.repairerId))
+      .leftJoin(repairer2, eq(repairer2.id, repairJobs.repairer2Id))
       .where(eq(repairJobs.eventId, evt.id))
       .orderBy(desc(repairJobs.createdAt));
 
@@ -217,7 +222,7 @@ export async function repairerRoutes(app: App): Promise<void> {
       jobs,
       counts,
       donationsTotal,
-      myJobs: jobs.filter((j) => j.repairerId === me.sub && j.status === 'in_progress'),
+      myJobs: jobs.filter((j) => (j.repairerId === me.sub || j.repairer2Id === me.sub) && j.status === 'in_progress'),
     };
   });
 
@@ -340,6 +345,7 @@ export async function repairerRoutes(app: App): Promise<void> {
 
   app.get('/api/repairer/jobs/:id', async (request, reply) => {
     const { id } = request.params as { id: string };
+    const repairer2 = alias(users, 'repairer2');
     const rows = await db
       .select({
         job: repairJobs,
@@ -347,12 +353,14 @@ export async function repairerRoutes(app: App): Promise<void> {
         event: events,
         venue: venues,
         repairer: repairerSummary,
+        repairer2: { id: repairer2.id, displayName: repairer2.displayName, avatarUrl: repairer2.avatarUrl },
       })
       .from(repairJobs)
       .leftJoin(skillCategories, eq(skillCategories.id, repairJobs.itemCategoryId))
       .innerJoin(events, eq(events.id, repairJobs.eventId))
       .innerJoin(venues, eq(venues.id, events.venueId))
       .leftJoin(users, eq(users.id, repairJobs.repairerId))
+      .leftJoin(repairer2, eq(repairer2.id, repairJobs.repairer2Id))
       .where(eq(repairJobs.id, id))
       .limit(1);
     if (rows.length === 0) {
@@ -551,7 +559,7 @@ export async function repairerRoutes(app: App): Promise<void> {
       reply.code(404).send({ error: 'Job not found', code: 'job/not_found' });
       return null;
     }
-    if (job.repairerId !== me.sub && me.role === 'repairer') {
+    if (job.repairerId !== me.sub && job.repairer2Id !== me.sub && me.role === 'repairer') {
       reply.code(403).send({ error: 'Not your job', code: 'job/not_owner' });
       return null;
     }
@@ -630,7 +638,7 @@ export async function repairerRoutes(app: App): Promise<void> {
       reply.code(409).send({ error: 'Job is already finished', code: 'job/already_finished' });
       return;
     }
-    if (existing.status === 'in_progress' && existing.repairerId === me.sub) {
+    if (existing.status === 'in_progress' && (existing.repairerId === me.sub || existing.repairer2Id === me.sub)) {
       // Already mine — no-op
       return withoutVisitorToken(existing);
     }
@@ -638,7 +646,13 @@ export async function repairerRoutes(app: App): Promise<void> {
     const previousRepairerId = existing.repairerId;
     const [updated] = await db
       .update(repairJobs)
-      .set({ status: 'in_progress', repairerId: me.sub, acceptedAt: new Date(), updatedAt: new Date() })
+      .set({
+        status: 'in_progress',
+        repairerId: me.sub,
+        repairer2Id: existing.repairer2Id === me.sub ? null : existing.repairer2Id,
+        acceptedAt: new Date(),
+        updatedAt: new Date(),
+      })
       .where(eq(repairJobs.id, id))
       .returning();
     await audit({
@@ -660,9 +674,24 @@ export async function repairerRoutes(app: App): Promise<void> {
   app.patch('/api/repairer/jobs/:id/assign', async (request, reply) => {
     const { id } = request.params as { id: string };
     const me = request.auth!;
-    const repairerId = (request.body as { repairerId?: unknown } | undefined)?.repairerId;
+    const body = (request.body ?? {}) as { repairerId?: unknown; repairer2Id?: unknown };
+    const repairerId = body.repairerId;
+    const hasSecond = Object.prototype.hasOwnProperty.call(body, 'repairer2Id');
+    const repairer2Id = hasSecond ? (body.repairer2Id as string | null) : undefined;
     if (!(repairerId === null || typeof repairerId === 'string')) {
       reply.code(400).send({ error: 'Choose a repairer', code: 'validation/failed' });
+      return;
+    }
+    if (hasSecond && !(repairer2Id === null || typeof repairer2Id === 'string')) {
+      reply.code(400).send({ error: 'Choose a second repairer, or leave it empty', code: 'validation/failed' });
+      return;
+    }
+    if (repairerId === null && repairer2Id) {
+      reply.code(400).send({ error: 'Choose the first repairer before the second', code: 'validation/failed' });
+      return;
+    }
+    if (typeof repairerId === 'string' && repairer2Id === repairerId) {
+      reply.code(400).send({ error: 'The two repairers must be different', code: 'validation/failed' });
       return;
     }
     const [existing] = await db.select().from(repairJobs).where(eq(repairJobs.id, id)).limit(1);
@@ -676,10 +705,10 @@ export async function repairerRoutes(app: App): Promise<void> {
     }
 
     if (repairerId === null) {
-      if (existing.repairerId === null) return withoutVisitorToken(existing);
+      if (existing.repairerId === null && existing.repairer2Id === null) return withoutVisitorToken(existing);
       const [updated] = await db
         .update(repairJobs)
-        .set({ status: 'waiting', repairerId: null, acceptedAt: null, updatedAt: new Date() })
+        .set({ status: 'waiting', repairerId: null, repairer2Id: null, acceptedAt: null, updatedAt: new Date() })
         .where(eq(repairJobs.id, id))
         .returning();
       await audit({
@@ -689,7 +718,7 @@ export async function repairerRoutes(app: App): Promise<void> {
         action: 'repair.unassigned',
         entityType: 'repair_job',
         entityId: id,
-        metadata: { previousRepairerId: existing.repairerId },
+        metadata: { previousRepairerId: existing.repairerId, previousRepairer2Id: existing.repairer2Id },
       });
       return withoutVisitorToken(updated);
     }
@@ -703,7 +732,29 @@ export async function repairerRoutes(app: App): Promise<void> {
       reply.code(400).send({ error: 'That volunteer is not in the hub', code: 'user/not_found' });
       return;
     }
-    if (existing.repairerId === target.id && existing.status === 'in_progress') {
+
+    // A second repairer is optional; the same person cannot hold both places.
+    const wantedSecond = repairer2Id === undefined ? existing.repairer2Id : repairer2Id;
+    const secondId = wantedSecond === null || wantedSecond === target.id ? null : wantedSecond;
+    let secondName: string | null = null;
+    if (secondId) {
+      const [second] = await db
+        .select({ id: users.id, displayName: users.displayName, isActive: users.isActive })
+        .from(users)
+        .where(eq(users.id, secondId))
+        .limit(1);
+      if (!second || !second.isActive) {
+        reply.code(400).send({ error: 'That second volunteer is not in the hub', code: 'user/not_found' });
+        return;
+      }
+      secondName = second.displayName;
+    }
+
+    if (
+      existing.repairerId === target.id &&
+      existing.repairer2Id === secondId &&
+      existing.status === 'in_progress'
+    ) {
       return withoutVisitorToken(existing);
     }
 
@@ -715,6 +766,7 @@ export async function repairerRoutes(app: App): Promise<void> {
       .set({
         status: starts ? 'in_progress' : existing.status,
         repairerId: target.id,
+        repairer2Id: secondId,
         acceptedAt: starts ? new Date() : existing.acceptedAt,
         updatedAt: new Date(),
       })
@@ -730,7 +782,10 @@ export async function repairerRoutes(app: App): Promise<void> {
       metadata: {
         repairerId: target.id,
         repairerName: target.displayName,
+        repairer2Id: secondId,
+        repairer2Name: secondName,
         previousRepairerId: existing.repairerId,
+        previousRepairer2Id: existing.repairer2Id,
       },
     });
     return withoutVisitorToken(updated);
@@ -748,7 +803,7 @@ export async function repairerRoutes(app: App): Promise<void> {
     // the queue on behalf of a repairer who is not signed in.
     const [updated] = await db
       .update(repairJobs)
-      .set({ status: 'waiting', repairerId: null, acceptedAt: null, updatedAt: new Date() })
+      .set({ status: 'waiting', repairerId: null, repairer2Id: null, acceptedAt: null, updatedAt: new Date() })
       .where(eq(repairJobs.id, id))
       .returning();
     await audit({
@@ -879,10 +934,13 @@ export async function repairerRoutes(app: App): Promise<void> {
     // Count a repair once, when it is first finished. Saving a finished repair
     // again, to correct a note, must not add to the repairer's total.
     const wasFinished = existing.status === 'completed' || existing.status === 'cannot_repair' || existing.status === 'abandoned';
-    if (existing.repairerId && !isPaused && body.outcome !== 'abandoned' && !wasFinished) {
-      await db.run(
-        sql`UPDATE users SET repair_count_cache = repair_count_cache + 1 WHERE id = ${existing.repairerId}`
-      );
+    const credited = [existing.repairerId, existing.repairer2Id].filter(
+      (id, index, all): id is string => Boolean(id) && all.indexOf(id) === index,
+    );
+    if (credited.length && !isPaused && body.outcome !== 'abandoned' && !wasFinished) {
+      for (const userId of credited) {
+        await db.run(sql`UPDATE users SET repair_count_cache = repair_count_cache + 1 WHERE id = ${userId}`);
+      }
     }
 
     await audit({
@@ -992,7 +1050,7 @@ export async function repairerRoutes(app: App): Promise<void> {
     const [{ total }] = await db
       .select({ total: count() })
       .from(repairJobs)
-      .where(eq(repairJobs.repairerId, me.sub));
+      .where(or(eq(repairJobs.repairerId, me.sub), eq(repairJobs.repairer2Id, me.sub)));
 
     const rows = await db
       .select({
@@ -1010,7 +1068,7 @@ export async function repairerRoutes(app: App): Promise<void> {
       .from(repairJobs)
       .leftJoin(skillCategories, eq(skillCategories.id, repairJobs.itemCategoryId))
       .innerJoin(events, eq(events.id, repairJobs.eventId))
-      .where(eq(repairJobs.repairerId, me.sub))
+      .where(or(eq(repairJobs.repairerId, me.sub), eq(repairJobs.repairer2Id, me.sub)))
       .orderBy(desc(repairJobs.createdAt))
       .limit(perPage)
       .offset(offset);
@@ -1027,7 +1085,7 @@ export async function repairerRoutes(app: App): Promise<void> {
       .select({ status: repairJobs.status, category: skillCategories.name })
       .from(repairJobs)
       .leftJoin(skillCategories, eq(skillCategories.id, repairJobs.itemCategoryId))
-      .where(eq(repairJobs.repairerId, me.sub));
+      .where(or(eq(repairJobs.repairerId, me.sub), eq(repairJobs.repairer2Id, me.sub)));
     const completed = allJobs.filter((j) => j.status === 'completed').length;
     const closed = allJobs.filter((j) => ['completed', 'cannot_repair'].includes(j.status)).length;
     const successRate = closed > 0 ? Math.round((completed / closed) * 100) : 0;

@@ -32,7 +32,7 @@ function repairConditions(q: RepairQuery): any[] {
   if (q.eventId) conditions.push(eq(repairJobs.eventId, q.eventId));
   if (q.status) conditions.push(eq(repairJobs.status, q.status as any));
   if (q.categoryId) conditions.push(eq(repairJobs.itemCategoryId, q.categoryId));
-  if (q.repairerId) conditions.push(eq(repairJobs.repairerId, q.repairerId));
+  if (q.repairerId) conditions.push(or(eq(repairJobs.repairerId, q.repairerId), eq(repairJobs.repairer2Id, q.repairerId)));
   // Dates are the cafe's own days, as Postgres read them in the old Docker edition.
   if (q.from && /^\d{4}-\d{2}-\d{2}$/.test(q.from)) {
     conditions.push(sql`${repairJobs.createdAt} >= ${localMidnightMs(q.from)}`);
@@ -53,6 +53,7 @@ async function repairExportRows(q: RepairQuery) {
   const conditions = repairConditions(q);
   const whereExpr = conditions.length > 0 ? and(...conditions) : undefined;
   const patTester = alias(users, 'pat_tester');
+  const repairer2 = alias(users, 'repairer2');
   const rows = await db
     .select({
       jobNumber: repairJobs.jobNumber,
@@ -73,6 +74,7 @@ async function repairExportRows(q: RepairQuery) {
       cardNumber: repairJobs.cardNumber,
       donationAmount: repairJobs.donationAmount,
       repairer: users.displayName,
+      repairer2: repairer2.displayName,
       outcomeNotes: repairJobs.outcomeNotes,
       satisfaction: repairJobs.satisfaction,
       satisfactionComment: repairJobs.satisfactionComment,
@@ -87,11 +89,12 @@ async function repairExportRows(q: RepairQuery) {
     .innerJoin(events, eq(events.id, repairJobs.eventId))
     .leftJoin(skillCategories, eq(skillCategories.id, repairJobs.itemCategoryId))
     .leftJoin(users, eq(users.id, repairJobs.repairerId))
+    .leftJoin(repairer2, eq(repairer2.id, repairJobs.repairer2Id))
     .leftJoin(patTester, eq(patTester.id, repairJobs.patTestedBy))
     .where(whereExpr as any)
     .orderBy(desc(repairJobs.createdAt));
 
-  const headers = ['jobNumber', 'cardNumber', 'donationAmount', 'eventDate', 'eventName', 'customerName', 'customerContact', 'customerEmail', 'customerPostalCode', 'customerCity', 'itemDescription', 'category', 'brand', 'weightKg', 'isFirstVisit', 'fault', 'status', 'repairer', 'outcomeNotes', 'satisfaction', 'satisfactionComment', 'environmentalSavingKg', 'createdAt', 'completedAt'];
+  const headers = ['jobNumber', 'cardNumber', 'donationAmount', 'eventDate', 'eventName', 'customerName', 'customerContact', 'customerEmail', 'customerPostalCode', 'customerCity', 'itemDescription', 'category', 'brand', 'weightKg', 'isFirstVisit', 'fault', 'status', 'repairer', 'repairer2', 'outcomeNotes', 'satisfaction', 'satisfactionComment', 'environmentalSavingKg', 'createdAt', 'completedAt'];
   // The PAT columns only appear while the cafe does PAT tests, so the file
   // is the same as before for everyone else.
   if ((await cafeFeatures()).patTestingEnabled) headers.push('patResult', 'patTestedAt', 'patTestedBy');
@@ -116,6 +119,7 @@ export async function adminRepairsRoutes(app: App): Promise<void> {
     const conditions = repairConditions(q);
     const whereExpr = conditions.length > 0 ? and(...conditions) : undefined;
     const [{ total }] = await db.select({ total: count() }).from(repairJobs).where(whereExpr as any);
+    const repairer2 = alias(users, 'repairer2');
     const rows = await db
       .select({
         id: repairJobs.id,
@@ -135,11 +139,14 @@ export async function adminRepairsRoutes(app: App): Promise<void> {
         category: skillCategories.name,
         repairerId: repairJobs.repairerId,
         repairerName: users.displayName,
+        repairer2Id: repairJobs.repairer2Id,
+        repairer2Name: repairer2.displayName,
       })
       .from(repairJobs)
       .innerJoin(events, eq(events.id, repairJobs.eventId))
       .leftJoin(skillCategories, eq(skillCategories.id, repairJobs.itemCategoryId))
       .leftJoin(users, eq(users.id, repairJobs.repairerId))
+      .leftJoin(repairer2, eq(repairer2.id, repairJobs.repairer2Id))
       .where(whereExpr as any)
       .orderBy(desc(repairJobs.createdAt))
       .limit(perPage)
@@ -152,17 +159,20 @@ export async function adminRepairsRoutes(app: App): Promise<void> {
 
   app.get('/api/admin/repairs/:id', async (request, reply) => {
     const { id } = request.params as { id: string };
+    const repairer2 = alias(users, 'repairer2');
     const rows = await db
       .select({
         job: repairJobs,
         category: skillCategories,
         event: events,
         repairer: repairerSummary,
+        repairer2: { id: repairer2.id, displayName: repairer2.displayName, avatarUrl: repairer2.avatarUrl },
       })
       .from(repairJobs)
       .leftJoin(skillCategories, eq(skillCategories.id, repairJobs.itemCategoryId))
       .innerJoin(events, eq(events.id, repairJobs.eventId))
       .leftJoin(users, eq(users.id, repairJobs.repairerId))
+      .leftJoin(repairer2, eq(repairer2.id, repairJobs.repairer2Id))
       .where(eq(repairJobs.id, id))
       .limit(1);
     if (rows.length === 0) {
@@ -206,12 +216,23 @@ export async function adminRepairsRoutes(app: App): Promise<void> {
     }
     const data = parsed.data;
     const [existing] = await db
-      .select({ status: repairJobs.status, eventId: repairJobs.eventId, cardNumber: repairJobs.cardNumber, cardReturnedAt: repairJobs.cardReturnedAt })
+      .select({ status: repairJobs.status, eventId: repairJobs.eventId, cardNumber: repairJobs.cardNumber, cardReturnedAt: repairJobs.cardReturnedAt, repairerId: repairJobs.repairerId, repairer2Id: repairJobs.repairer2Id })
       .from(repairJobs)
       .where(eq(repairJobs.id, id))
       .limit(1);
     if (!existing) {
       reply.code(404).send({ error: 'Repair not found', code: 'repair/not_found' });
+      return;
+    }
+    // A repair can have two people on it, but not the same person twice.
+    const primary = data.repairerId !== undefined ? data.repairerId : existing.repairerId;
+    const second = data.repairer2Id !== undefined ? data.repairer2Id : existing.repairer2Id;
+    if (second && !primary) {
+      reply.code(400).send({ error: 'Choose the first repairer before the second', code: 'validation/failed' });
+      return;
+    }
+    if (primary && second && primary === second) {
+      reply.code(400).send({ error: 'The two repairers must be different', code: 'validation/failed' });
       return;
     }
     // A card number must not clash with another card that is still out in the
@@ -227,7 +248,7 @@ export async function adminRepairsRoutes(app: App): Promise<void> {
       }
     }
     const update: any = { updatedAt: new Date() };
-    for (const k of ['status', 'repairerId', 'outcomeNotes', 'partsUsed', 'customerName', 'customerContact', 'customerEmail', 'customerPostalCode', 'customerCity', 'itemDescription', 'faultDescription', 'itemCategoryId', 'itemBrand', 'isFirstVisit', 'satisfaction', 'satisfactionComment', 'cardNumber']) {
+    for (const k of ['status', 'repairerId', 'repairer2Id', 'outcomeNotes', 'partsUsed', 'customerName', 'customerContact', 'customerEmail', 'customerPostalCode', 'customerCity', 'itemDescription', 'faultDescription', 'itemCategoryId', 'itemBrand', 'isFirstVisit', 'satisfaction', 'satisfactionComment', 'cardNumber']) {
       if ((data as any)[k] !== undefined) update[k] = (data as any)[k];
     }
     if (data.environmentalSavingKg !== undefined) {

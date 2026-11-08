@@ -50,7 +50,7 @@
   $: finished = [...jobs]
     .filter((j) => j.status === 'completed' || j.status === 'cannot_repair')
     .sort((a, b) => new Date(b.completedAt ?? 0).getTime() - new Date(a.completedAt ?? 0).getTime());
-  $: busyRepairers = new Set(working.map((j) => j.repairerName).filter(Boolean)).size;
+  $: busyRepairers = new Set(working.flatMap((j) => [j.repairerName, j.repairer2Name]).filter(Boolean)).size;
   $: estimate = estimatedWaitMinutes({
     waiting: waiting.length,
     repairersBusy: busyRepairers,
@@ -147,7 +147,7 @@
                       <span class="meta">
                         <span class="num">{j.callNumber}</span>
                         {#if control && j.customerName}<span>· {j.customerName}</span>{/if}
-                        {#if j.repairerName}<span>· {$t('with {name}', { name: control ? j.repairerName : j.repairerName.split(' ')[0] })}</span>{/if}
+                        {#if j.repairerName}<span>· {$t('with {name}', { name: [j.repairerName, j.repairer2Name].filter(Boolean).map((n) => control ? n : n!.split(' ')[0]).join(' & ') })}</span>{/if}
                       </span>
                     </span>
                     <span class="elapsed">{minutesText(minutesBetween(j.acceptedAt ?? j.createdAt, now))}</span>

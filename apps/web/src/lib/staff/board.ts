@@ -31,6 +31,8 @@ export interface BoardJob {
   completedAt: string | null;
   /** The full name for admins, the first name on the waiting-room screen. */
   repairerName: string | null;
+  /** An optional second volunteer on the same item. */
+  repairer2Name?: string | null;
 }
 
 export interface BoardSession {
@@ -81,6 +83,7 @@ export function fromAdminBoard(body: any, cafe: { name?: string | null; logoUrl?
       acceptedAt: j.acceptedAt,
       completedAt: j.completedAt,
       repairerName: j.repairerName,
+      repairer2Name: j.repairer2Name ?? null,
     })),
     today: body.today ?? { checkedIn: 0, fixed: 0, co2SavedKg: null, averageRepairMinutes: null },
   };
@@ -102,6 +105,7 @@ export function fromDisplay(body: any): BoardData {
       acceptedAt: j.acceptedAt,
       completedAt: j.completedAt,
       repairerName: j.repairerFirstName,
+      repairer2Name: j.repairer2FirstName ?? null,
     })),
     today: body.today ?? { checkedIn: 0, fixed: 0, co2SavedKg: null, averageRepairMinutes: null },
   };
