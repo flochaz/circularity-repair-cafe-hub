@@ -1,6 +1,6 @@
 import type { App } from '../../lib/router.js';
 import { db } from '../../db/index.js';
-import { addDaysIso, localMidnightMs, localToday } from '../../lib/dates.js';
+import { addDaysIso, localDateTime, localMidnightMs, localToday } from '../../lib/dates.js';
 import { cafes, co2Factors, events, preRegistrations, repairImages, repairJobs, skillCategories, users } from '../../db/schema.js';
 import { and, asc, count, desc, eq, inArray, like, or, sql } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/sqlite-core';
@@ -12,41 +12,108 @@ import { repairerSummary } from '../../utils/users.js';
 import { deleteImage } from '../../services/imageUpload.js';
 import { env } from '../../env.js';
 import { csvCell } from '../../lib/csv.js';
+import { buildXlsx } from '../../lib/xlsx.js';
 
+interface RepairQuery {
+  page?: string;
+  perPage?: string;
+  eventId?: string;
+  status?: string;
+  categoryId?: string;
+  repairerId?: string;
+  from?: string;
+  to?: string;
+  search?: string;
+}
+
+/** The filters shared by the repairs list and both exports. */
+function repairConditions(q: RepairQuery): any[] {
+  const conditions: any[] = [];
+  if (q.eventId) conditions.push(eq(repairJobs.eventId, q.eventId));
+  if (q.status) conditions.push(eq(repairJobs.status, q.status as any));
+  if (q.categoryId) conditions.push(eq(repairJobs.itemCategoryId, q.categoryId));
+  if (q.repairerId) conditions.push(eq(repairJobs.repairerId, q.repairerId));
+  // Dates are the cafe's own days, as Postgres read them in the old Docker edition.
+  if (q.from && /^\d{4}-\d{2}-\d{2}$/.test(q.from)) {
+    conditions.push(sql`${repairJobs.createdAt} >= ${localMidnightMs(q.from)}`);
+  }
+  if (q.to && /^\d{4}-\d{2}-\d{2}$/.test(q.to)) {
+    conditions.push(sql`${repairJobs.createdAt} <= ${localMidnightMs(addDaysIso(q.to, 1))}`);
+  }
+  if (q.search) {
+    const s = `%${q.search}%`;
+    // SQLite's LIKE ignores case, as Postgres's ILIKE did.
+    conditions.push(or(like(repairJobs.customerName, s), like(repairJobs.itemDescription, s), like(repairJobs.jobNumber, s)));
+  }
+  return conditions;
+}
+
+/** The rows and columns both download formats share. */
+async function repairExportRows(q: RepairQuery) {
+  const conditions = repairConditions(q);
+  const whereExpr = conditions.length > 0 ? and(...conditions) : undefined;
+  const patTester = alias(users, 'pat_tester');
+  const rows = await db
+    .select({
+      jobNumber: repairJobs.jobNumber,
+      eventDate: events.date,
+      eventName: events.name,
+      customerName: repairJobs.customerName,
+      customerContact: repairJobs.customerContact,
+      customerEmail: repairJobs.customerEmail,
+      customerPostalCode: repairJobs.customerPostalCode,
+      customerCity: repairJobs.customerCity,
+      itemDescription: repairJobs.itemDescription,
+      category: skillCategories.name,
+      brand: repairJobs.itemBrand,
+      weightKg: repairJobs.weightKg,
+      isFirstVisit: repairJobs.isFirstVisit,
+      fault: repairJobs.faultDescription,
+      status: repairJobs.status,
+      cardNumber: repairJobs.cardNumber,
+      donationAmount: repairJobs.donationAmount,
+      repairer: users.displayName,
+      outcomeNotes: repairJobs.outcomeNotes,
+      satisfaction: repairJobs.satisfaction,
+      satisfactionComment: repairJobs.satisfactionComment,
+      environmentalSavingKg: repairJobs.environmentalSavingKg,
+      createdAt: repairJobs.createdAt,
+      completedAt: repairJobs.completedAt,
+      patResult: repairJobs.patResult,
+      patTestedAt: repairJobs.patTestedAt,
+      patTestedBy: patTester.displayName,
+    })
+    .from(repairJobs)
+    .innerJoin(events, eq(events.id, repairJobs.eventId))
+    .leftJoin(skillCategories, eq(skillCategories.id, repairJobs.itemCategoryId))
+    .leftJoin(users, eq(users.id, repairJobs.repairerId))
+    .leftJoin(patTester, eq(patTester.id, repairJobs.patTestedBy))
+    .where(whereExpr as any)
+    .orderBy(desc(repairJobs.createdAt));
+
+  const headers = ['jobNumber', 'cardNumber', 'donationAmount', 'eventDate', 'eventName', 'customerName', 'customerContact', 'customerEmail', 'customerPostalCode', 'customerCity', 'itemDescription', 'category', 'brand', 'weightKg', 'isFirstVisit', 'fault', 'status', 'repairer', 'outcomeNotes', 'satisfaction', 'satisfactionComment', 'environmentalSavingKg', 'createdAt', 'completedAt'];
+  // The PAT columns only appear while the cafe does PAT tests, so the file
+  // is the same as before for everyone else.
+  if ((await cafeFeatures()).patTestingEnabled) headers.push('patResult', 'patTestedAt', 'patTestedBy');
+  // Dates as the cafe reads them, not as JavaScript spells a Date.
+  const cleanRows = rows.map((r) => ({
+    ...r,
+    createdAt: localDateTime(r.createdAt),
+    completedAt: localDateTime(r.completedAt),
+    patTestedAt: localDateTime(r.patTestedAt),
+  }));
+  return { rows: cleanRows, headers };
+}
+
+const EXPORT_NUMERIC = new Set(['cardNumber', 'donationAmount', 'weightKg', 'environmentalSavingKg']);
 
 export async function adminRepairsRoutes(app: App): Promise<void> {
   app.get('/api/admin/repairs', async (request) => {
-    const q = request.query as {
-      page?: string;
-      perPage?: string;
-      eventId?: string;
-      status?: string;
-      categoryId?: string;
-      repairerId?: string;
-      from?: string;
-      to?: string;
-      search?: string;
-    };
+    const q = request.query as RepairQuery;
     const page = Math.max(1, Number(q.page ?? 1));
     const perPage = Math.min(100, Number(q.perPage ?? 25));
     const offset = (page - 1) * perPage;
-    const conditions: any[] = [];
-    if (q.eventId) conditions.push(eq(repairJobs.eventId, q.eventId));
-    if (q.status) conditions.push(eq(repairJobs.status, q.status as any));
-    if (q.categoryId) conditions.push(eq(repairJobs.itemCategoryId, q.categoryId));
-    if (q.repairerId) conditions.push(eq(repairJobs.repairerId, q.repairerId));
-    // Dates are the cafe's own days, as Postgres read them in the old Docker edition.
-    if (q.from && /^\d{4}-\d{2}-\d{2}$/.test(q.from)) {
-      conditions.push(sql`${repairJobs.createdAt} >= ${localMidnightMs(q.from)}`);
-    }
-    if (q.to && /^\d{4}-\d{2}-\d{2}$/.test(q.to)) {
-      conditions.push(sql`${repairJobs.createdAt} <= ${localMidnightMs(addDaysIso(q.to, 1))}`);
-    }
-    if (q.search) {
-      const s = `%${q.search}%`;
-      // SQLite's LIKE ignores case, as Postgres's ILIKE did.
-      conditions.push(or(like(repairJobs.customerName, s), like(repairJobs.itemDescription, s), like(repairJobs.jobNumber, s)));
-    }
+    const conditions = repairConditions(q);
     const whereExpr = conditions.length > 0 ? and(...conditions) : undefined;
     const [{ total }] = await db.select({ total: count() }).from(repairJobs).where(whereExpr as any);
     const rows = await db
@@ -225,56 +292,29 @@ export async function adminRepairsRoutes(app: App): Promise<void> {
     return { ok: true };
   });
 
-  // CSV export
+  // CSV export. The same filters as the list, UTF-8 with a BOM and CRLF so
+  // Excel reads accents and line breaks correctly. Fields are quoted by
+  // csvCell, which also stops a visitor's text being run as a formula.
   app.get('/api/admin/repairs/export.csv', async (request, reply) => {
-    const patTester = alias(users, 'pat_tester');
-    const rows = await db
-      .select({
-        jobNumber: repairJobs.jobNumber,
-        eventDate: events.date,
-        eventName: events.name,
-        customerName: repairJobs.customerName,
-        customerContact: repairJobs.customerContact,
-        customerEmail: repairJobs.customerEmail,
-        customerPostalCode: repairJobs.customerPostalCode,
-        customerCity: repairJobs.customerCity,
-        itemDescription: repairJobs.itemDescription,
-        category: skillCategories.name,
-        brand: repairJobs.itemBrand,
-        weightKg: repairJobs.weightKg,
-        isFirstVisit: repairJobs.isFirstVisit,
-        fault: repairJobs.faultDescription,
-        status: repairJobs.status,
-        cardNumber: repairJobs.cardNumber,
-        donationAmount: repairJobs.donationAmount,
-        repairer: users.displayName,
-        outcomeNotes: repairJobs.outcomeNotes,
-        satisfaction: repairJobs.satisfaction,
-        satisfactionComment: repairJobs.satisfactionComment,
-        environmentalSavingKg: repairJobs.environmentalSavingKg,
-        createdAt: repairJobs.createdAt,
-        completedAt: repairJobs.completedAt,
-        patResult: repairJobs.patResult,
-        patTestedAt: repairJobs.patTestedAt,
-        patTestedBy: patTester.displayName,
-      })
-      .from(repairJobs)
-      .innerJoin(events, eq(events.id, repairJobs.eventId))
-      .leftJoin(skillCategories, eq(skillCategories.id, repairJobs.itemCategoryId))
-      .leftJoin(users, eq(users.id, repairJobs.repairerId))
-      .leftJoin(patTester, eq(patTester.id, repairJobs.patTestedBy))
-      .orderBy(desc(repairJobs.createdAt));
-    const headers = ['jobNumber', 'cardNumber', 'donationAmount', 'eventDate', 'eventName', 'customerName', 'customerContact', 'customerEmail', 'customerPostalCode', 'customerCity', 'itemDescription', 'category', 'brand', 'weightKg', 'isFirstVisit', 'fault', 'status', 'repairer', 'outcomeNotes', 'satisfaction', 'satisfactionComment', 'environmentalSavingKg', 'createdAt', 'completedAt'];
-    // The PAT columns only appear while the cafe does PAT tests, so the file
-    // is the same as before for everyone else.
-    if ((await cafeFeatures()).patTestingEnabled) headers.push('patResult', 'patTestedAt', 'patTestedBy');
+    const { rows, headers } = await repairExportRows(request.query as RepairQuery);
     const lines = [headers.join(',')];
     for (const r of rows) {
       lines.push(headers.map((h) => csvCell((r as any)[h])).join(','));
     }
-    reply.header('Content-Type', 'text/csv');
-    reply.header('Content-Disposition', `attachment; filename="repairs.csv"`);
-    return lines.join('\n');
+    reply.header('Content-Type', 'text/csv; charset=utf-8');
+    reply.header('Content-Disposition', 'attachment; filename="repairs.csv"');
+    return '\uFEFF' + lines.join('\r\n') + '\r\n';
+  });
+
+  // The same rows as an Excel workbook, for anyone who would rather not have
+  // their spreadsheet guess at quoting and separators.
+  app.get('/api/admin/repairs/export.xlsx', async (request, reply) => {
+    const { rows, headers } = await repairExportRows(request.query as RepairQuery);
+    const values = rows.map((r) => headers.map((h) => (r as any)[h]));
+    const file = buildXlsx('Repairs', headers, values, { numeric: EXPORT_NUMERIC });
+    reply.header('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    reply.header('Content-Disposition', 'attachment; filename="repairs.xlsx"');
+    return file;
   });
 
   // ORDS export: the Open Repair Data Standard, for contributing to the Open

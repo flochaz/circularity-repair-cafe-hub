@@ -63,6 +63,12 @@
     void saveExport(`/api/admin/repairs/export.csv?${params}`, 'repairs.csv');
   }
 
+  function exportExcel() {
+    const params = new URLSearchParams();
+    for (const [k, v] of Object.entries(filters)) if (v) params.set(k, v);
+    void saveExport(`/api/admin/repairs/export.xlsx?${params}`, 'repairs.xlsx');
+  }
+
   /**
    * Every finished repair in the Open Repair Data Standard, for sharing with
    * the Open Repair Alliance. It ignores the filters: the Alliance wants the
@@ -103,6 +109,7 @@
   <div class="flex gap-2">
     <a href="/repairer/checkin" class="btn-primary">Add a repair</a>
     <button class="btn-secondary" on:click={exportCsv}>Export CSV</button>
+    <button class="btn-secondary" on:click={exportExcel}>Export Excel</button>
     <button
       class="btn-secondary"
       on:click={exportOrds}

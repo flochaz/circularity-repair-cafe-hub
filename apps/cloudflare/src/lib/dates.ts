@@ -28,9 +28,34 @@ export function localToday(at: Date = new Date()): string {
   return formatter(env.TZ).format(at);
 }
 
+/**
+ * A timestamp in the cafe's own time zone, as 'YYYY-MM-DD HH:MM'. The export
+ * uses this instead of JavaScript's Date string, which carries "GMT+0100
+ * (Central European Time)" into the spreadsheet.
+ */
+export function localDateTime(value: Date | string | null | undefined, timeZone: string = env.TZ): string {
+  if (value === null || value === undefined || value === '') return '';
+  const at = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(at.getTime())) return String(value);
+  try {
+    const parts = new Intl.DateTimeFormat('en-CA', {
+      timeZone,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      hourCycle: 'h23',
+    }).formatToParts(at);
+    const get = (type: string) => parts.find((p) => p.type === type)?.value ?? '';
+    return `${get('year')}-${get('month')}-${get('day')} ${get('hour')}:${get('minute')}`;
+  } catch {
+    return at.toISOString().slice(0, 16).replace('T', ' ');
+  }
+}
+
 /** 'YYYY-MM-DD' plus a number of days, which may be negative. */
-export function addDaysIso(iso: string, days: number): string {
-  const d = new Date(`${iso}T12:00:00Z`);
+export function addDaysIso(iso: string, days: number): string {  const d = new Date(`${iso}T12:00:00Z`);
   d.setUTCDate(d.getUTCDate() + days);
   return d.toISOString().slice(0, 10);
 }
